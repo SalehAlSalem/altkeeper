@@ -23,3 +23,7 @@ notify.conf
 renew.log
 .ultimo-errore
 /profili-salvati/
+
+AltKeeper.exe
+config.json
+

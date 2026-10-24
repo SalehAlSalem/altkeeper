@@ -25,9 +25,11 @@ mod apple;
 mod dnssd;
 mod env;
 mod fsperm;
+pub mod notify;
 mod phone;
 mod profile;
-mod web;
+pub mod scheduler;
+pub mod web;
 
 use std::net::SocketAddr;
 use std::path::Path;
@@ -113,7 +115,7 @@ fn start_dnssd(opt: impl Fn(&str) -> Option<String>, altserver_port: u16) -> Res
 /// Si collega al telefono, all'indirizzo indicato o a quello trovato in rete.
 async fn open_phone(
     addr: Option<SocketAddr>,
-    say: &mut dyn FnMut(&str),
+    say: &mut (dyn FnMut(&str) + Send),
 ) -> Result<phone::PhoneLink, String> {
     let (found, link) = phone::connect_auto(addr, PAIRING_FILE, &mut *say).await?;
     if found == phone::Via::Usb {
@@ -225,12 +227,12 @@ async fn cmd_apps() -> Result<(), String> {
     Ok(())
 }
 
-async fn cmd_renew(
+pub async fn cmd_renew(
     addr: Option<SocketAddr>,
     dry_run: bool,
     force: bool,
     min_days: i64,
-    say: &mut dyn FnMut(&str),
+    say: &mut (dyn FnMut(&str) + Send),
 ) -> Result<(), String> {
     let acc = apple::load_account(Path::new("."))?;
     let team_id = acc.team_id.clone().ok_or("team not saved: sign in again")?;
@@ -395,10 +397,23 @@ async fn main() -> Result<(), String> {
         .init();
 
     let mut args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() {
-        return Err(USAGE.into());
+    let is_empty = args.is_empty();
+
+    if args.iter().any(|a| a == "--silent") {
+        #[cfg(windows)]
+        unsafe {
+            extern "system" {
+                fn FreeConsole() -> i32;
+            }
+            FreeConsole();
+        }
     }
-    let cmd = args.remove(0);
+
+    let cmd = if is_empty {
+        "serve".to_string()
+    } else {
+        args.remove(0)
+    };
     let flag = |name: &str| args.iter().any(|a| a == name);
     let opt = |name: &str| {
         args.iter()
@@ -450,7 +465,15 @@ async fn main() -> Result<(), String> {
             let phone = phone_addr(opt("--phone"))?;
             web::check_options(bind, &pin)?;
             apple::anisette_url(env::var("ANISETTE_URL").as_deref())?;
-            if flag("--altserver") {
+            if is_empty {
+                #[cfg(windows)]
+                let _ = std::process::Command::new("cmd")
+                    .args(["/c", "start", "http://127.0.0.1:8787"])
+                    .spawn();
+            }
+
+            let enable_altserver = is_empty || flag("--altserver");
+            if enable_altserver {
                 let port = altserver::start(altserver_port(opt("--altserver-port"))?, phone)?;
                 start_dnssd(&opt, port)?;
             } else if opt("--dns-domain").is_some() {

@@ -111,9 +111,9 @@ fn anisette_provider(dir: &Path) -> Result<RemoteV3AnisetteProvider, String> {
     std::fs::create_dir_all(&state).map_err(dbg)?;
     crate::fsperm::restrict_dir(&state).map_err(dbg)?;
     let mut provider = RemoteV3AnisetteProvider::default().map_err(|e| e.to_string())?;
-    if let Some(url) = anisette_url(crate::env::var("ANISETTE_URL").as_deref())? {
-        provider = provider.set_url(&url);
-    }
+    let url = anisette_url(crate::env::var("ANISETTE_URL").as_deref())?
+        .unwrap_or_else(|| "https://new.ani.sidestore.io".to_string());
+    provider = provider.set_url(&url);
     Ok(provider
         .set_storage(Box::new(FsStorage::new(state)))
         .set_serial_number("2".to_string()))

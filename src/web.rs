@@ -39,13 +39,12 @@ const MAX_IPA_BYTES: usize = 1024 * 1024 * 1024;
 // Stato condiviso
 // ---------------------------------------------------------------------------------------------
 
-struct App {
-    pin: Option<String>,
-    phone: Option<SocketAddr>,
-    /// C'è già un lavoro in corso (controllo, rinnovo o login).
-    busy: AtomicBool,
+pub struct App {
+    pub pin: Option<String>,
+    pub phone: Option<SocketAddr>,
+    pub busy: AtomicBool,
     inner: Mutex<Inner>,
-    tfa: Arc<apple::TfaChannel>,
+    pub tfa: Arc<apple::TfaChannel>,
 }
 
 #[derive(Default)]
@@ -191,6 +190,7 @@ pub async fn serve(
         inner: Mutex::new(Inner::default()),
         tfa: Arc::new(apple::TfaChannel::default()),
     });
+    crate::scheduler::start(app.clone());
     let router = Router::new()
         .route("/", get(index))
         .route("/api/state", get(state))
@@ -203,6 +203,8 @@ pub async fn serve(
         .route("/api/login", post(login))
         .route("/api/login/code", post(login_code))
         .route("/api/login/resend", post(login_resend))
+        .route("/api/scheduler", get(scheduler_get))
+        .route("/api/scheduler", post(scheduler_update))
         .layer(middleware::from_fn_with_state(app.clone(), guard))
         .with_state(app.clone());
 
@@ -1181,6 +1183,51 @@ fn append_log(lines: &[String], ok: bool) {
 }
 
 // ---------------------------------------------------------------------------------------------
+
+async fn scheduler_get() -> Json<Value> {
+    let status = crate::scheduler::get_status();
+    let autostart = crate::scheduler::is_windows_autostart_enabled();
+    Json(json!({
+        "status": status.state_code,
+        "message": status.message,
+        "last_check_time": status.last_check_time,
+        "config": {
+            "auto_renew": status.config.auto_renew,
+            "interval_mins": status.config.interval_mins,
+            "renew_days_threshold": status.config.renew_days_threshold,
+            "last_renewed_date": status.config.last_renewed_date,
+            "auto_start_windows": autostart,
+        }
+    }))
+}
+
+#[derive(Deserialize)]
+struct SchedulerUpdateReq {
+    auto_renew: Option<bool>,
+    interval_mins: Option<u64>,
+    renew_days_threshold: Option<i64>,
+    auto_start_windows: Option<bool>,
+}
+
+async fn scheduler_update(Json(req): Json<SchedulerUpdateReq>) -> (StatusCode, Json<Value>) {
+    let mut cfg = crate::scheduler::load_config();
+    if let Some(ar) = req.auto_renew {
+        cfg.auto_renew = ar;
+    }
+    if let Some(im) = req.interval_mins {
+        cfg.interval_mins = im.clamp(5, 1440);
+    }
+    if let Some(th) = req.renew_days_threshold {
+        cfg.renew_days_threshold = th.clamp(1, 6);
+    }
+    if let Some(as_win) = req.auto_start_windows {
+        cfg.auto_start_windows = as_win;
+        let _ = crate::scheduler::set_windows_autostart(as_win);
+    }
+    crate::scheduler::save_config(&cfg);
+    (StatusCode::OK, Json(json!({ "ok": true })))
+}
+
 // Test
 // ---------------------------------------------------------------------------------------------
 

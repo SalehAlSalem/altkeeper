@@ -22,6 +22,21 @@ use tokio::net::TcpStream;
 
 pub const HOST_NAME: &str = "casa2";
 
+
+pub fn usbmuxd_addr() -> Result<UsbmuxdAddr, String> {
+    if let Ok(addr) = UsbmuxdAddr::from_env_var() {
+        return Ok(addr);
+    }
+    #[cfg(windows)]
+    {
+        Ok(UsbmuxdAddr::TcpSocket("127.0.0.1:27015".parse().unwrap()))
+    }
+    #[cfg(not(windows))]
+    {
+        UsbmuxdAddr::from_env_var().map_err(dbg)
+    }
+}
+
 pub fn dbg<E: std::fmt::Debug>(e: E) -> String {
     format!("{e:?}")
 }
@@ -33,7 +48,7 @@ pub struct PhoneLink {
     pub misagent: MisagentClient,
     pub adapter: idevice::tcp::handle::AdapterHandle,
     pub hs: RsdHandshake,
-    _keep: Vec<Box<dyn Any>>,
+    _keep: Vec<Box<dyn Any + Send>>,
 }
 
 /// Come si è arrivati al telefono: cavo USB (usbmuxd locale) o rete.
@@ -131,7 +146,7 @@ pub async fn connect_usb(say: &mut impl FnMut(&str)) -> Result<Option<PhoneLink>
     if crate::env::is_set("NO_USB") {
         return Ok(None);
     }
-    let addr = UsbmuxdAddr::from_env_var().map_err(dbg)?;
+    let addr = usbmuxd_addr()?;
     let Ok(Ok(mut mux)) = tokio::time::timeout(Duration::from_secs(2), addr.connect(1)).await
     else {
         return Ok(None);
@@ -369,7 +384,7 @@ pub async fn install_via_usb(
     if crate::env::is_set("NO_USB") {
         return Ok(false);
     }
-    let addr = UsbmuxdAddr::from_env_var().map_err(dbg)?;
+    let addr = usbmuxd_addr()?;
     let Ok(Ok(mut mux)) = tokio::time::timeout(Duration::from_secs(2), addr.connect(1)).await
     else {
         return Ok(false);
@@ -402,7 +417,7 @@ pub async fn pair_usb(out: &str) -> Result<(), String> {
         .iter()
         .find(|d| d.connection_type == Connection::Usb)
         .ok_or("nessun iPhone collegato via USB")?;
-    let provider = dev.to_provider(UsbmuxdAddr::from_env_var().map_err(dbg)?, "altkeeper");
+    let provider = dev.to_provider(usbmuxd_addr()?, "altkeeper");
 
     let service = RemotePairingLockdownService::connect(&provider)
         .await
