@@ -29,6 +29,7 @@ pub mod notify;
 mod phone;
 mod profile;
 pub mod scheduler;
+pub mod tray;
 pub mod web;
 
 use std::net::SocketAddr;
@@ -465,11 +466,12 @@ async fn main() -> Result<(), String> {
             let phone = phone_addr(opt("--phone"))?;
             web::check_options(bind, &pin)?;
             apple::anisette_url(env::var("ANISETTE_URL").as_deref())?;
-            if is_empty {
-                #[cfg(windows)]
-                let _ = std::process::Command::new("cmd")
-                    .args(["/c", "start", "http://127.0.0.1:8787"])
-                    .spawn();
+            if !flag("--no-tray") {
+                crate::tray::start();
+            }
+
+            if is_empty || flag("--window") {
+                crate::tray::open_app_window();
             }
 
             let enable_altserver = is_empty || flag("--altserver");
