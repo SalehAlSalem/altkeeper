@@ -127,7 +127,6 @@ extern "system" {
     fn AppendMenuW(hMenu: *mut (), uFlags: u32, uIDNewItem: usize, lpNewItem: *const u16) -> i32;
     fn TrackPopupMenu(hMenu: *mut (), uFlags: u32, x: i32, y: i32, nReserved: i32, hWnd: *mut (), prcRect: *const ()) -> i32;
     fn DestroyMenu(hMenu: *mut ()) -> i32;
-    fn PostQuitMessage(nExitCode: i32);
     fn GetMessageW(lpMsg: *mut MSG, hWnd: *mut (), wMsgFilterMin: u32, wMsgFilterMax: u32) -> i32;
     fn TranslateMessage(lpMsg: *const MSG) -> i32;
     fn DispatchMessageW(lpMsg: *const MSG) -> isize;
