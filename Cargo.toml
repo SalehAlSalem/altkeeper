@@ -2,6 +2,7 @@
 name = "altkeeper"
 version = "0.2.0"
 edition = "2021"
+build = "build.rs"
 description = "AltServer for iOS 17+ that runs on your home server (Docker): renews and installs sideloaded iPhone apps over Wi-Fi, no computer or VPN"
 license = "MIT"
 readme = "README.md"

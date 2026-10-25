@@ -121,6 +121,14 @@ extern "system" {
         lpParam: *mut (),
     ) -> *mut ();
     fn LoadIconW(hInstance: *mut (), lpIconName: usize) -> *mut ();
+    fn LoadImageW(
+        hInst: *mut (),
+        name: usize,
+        type_: u32,
+        cx: i32,
+        cy: i32,
+        fuLoad: u32,
+    ) -> *mut ();
     fn GetCursorPos(lpPoint: *mut POINT) -> i32;
     fn SetForegroundWindow(hWnd: *mut ()) -> i32;
     fn CreatePopupMenu() -> *mut ();
@@ -132,28 +140,60 @@ extern "system" {
     fn DispatchMessageW(lpMsg: *const MSG) -> isize;
 }
 
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn GetModuleHandleW(lpModuleName: *const u16) -> *mut ();
+}
+
 /// Apre la finestra dell'applicazione standalone usando Microsoft Edge o Chrome in modalità app
 /// (senza barra degli indirizzi, senza schede, come un'applicazione nativa).
 pub fn open_app_window() {
     #[cfg(windows)]
     {
-        // Edge è preinstallato su ogni Windows 10 e 11
-        let res = std::process::Command::new("msedge.exe")
-            .args(["--app=http://127.0.0.1:8787", "--window-size=680,860"])
-            .spawn();
+        let url = "http://127.0.0.1:8787";
+        let app_arg = format!("--app={url}");
+        let win_size = "--window-size=700,880";
 
-        if res.is_err() {
-            // Prova con Chrome
-            let chrome_res = std::process::Command::new("chrome.exe")
-                .args(["--app=http://127.0.0.1:8787", "--window-size=680,860"])
-                .spawn();
-            if chrome_res.is_err() {
-                // Ripiego su browser predefinito
-                let _ = std::process::Command::new("cmd")
-                    .args(["/c", "start", "http://127.0.0.1:8787"])
-                    .spawn();
+        let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+        let program_files = std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into());
+        let program_files_x86 = std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into());
+
+        let candidates = [
+            format!(r"{program_files_x86}\Microsoft\Edge\Application\msedge.exe"),
+            format!(r"{program_files}\Microsoft\Edge\Application\msedge.exe"),
+            format!(r"{local_app_data}\Microsoft\Edge\Application\msedge.exe"),
+            format!(r"{program_files}\Google\Chrome\Application\chrome.exe"),
+            format!(r"{program_files_x86}\Google\Chrome\Application\chrome.exe"),
+            format!(r"{local_app_data}\Google\Chrome\Application\chrome.exe"),
+        ];
+
+        for path in &candidates {
+            if std::path::Path::new(path).exists() {
+                if std::process::Command::new(path)
+                    .args([&app_arg, win_size])
+                    .spawn()
+                    .is_ok()
+                {
+                    return;
+                }
             }
         }
+
+        for bin in ["msedge.exe", "msedge", "chrome.exe", "chrome"] {
+            if std::process::Command::new(bin)
+                .args([&app_arg, win_size])
+                .spawn()
+                .is_ok()
+            {
+                return;
+            }
+        }
+
+        // Ripiego su browser predefinito
+        let _ = std::process::Command::new("cmd")
+            .args(["/c", "start", url])
+            .spawn();
     }
 }
 
@@ -228,10 +268,28 @@ pub fn start() {
     #[cfg(windows)]
     {
         std::thread::spawn(|| unsafe {
+            let hinst = GetModuleHandleW(null_mut());
+            // Carica l'icona personalizzata incorporata (ID 1), con ripiego sull'icona di default
+            let mut hicon = LoadImageW(hinst, 1, 1 /* IMAGE_ICON */, 16, 16, 0);
+            if hicon.is_null() {
+                hicon = LoadIconW(hinst, 1);
+            }
+            if hicon.is_null() {
+                hicon = LoadIconW(null_mut(), 32512); // IDI_APPLICATION fallback
+            }
+
+            let mut hicon_big = LoadImageW(hinst, 1, 1, 32, 32, 0);
+            if hicon_big.is_null() {
+                hicon_big = hicon;
+            }
+
             let class_name: Vec<u16> = "AltKeeperTrayWindow\0".encode_utf16().collect();
             let mut wcx: WNDCLASSEXW = std::mem::zeroed();
             wcx.cb_size = std::mem::size_of::<WNDCLASSEXW>() as u32;
             wcx.lpfn_wnd_proc = Some(tray_wnd_proc);
+            wcx.h_instance = hinst;
+            wcx.h_icon = hicon_big;
+            wcx.h_icon_sm = hicon;
             wcx.lpsz_class_name = class_name.as_ptr();
 
             RegisterClassExW(&wcx);
@@ -257,7 +315,7 @@ pub fn start() {
             nid.u_id = 1;
             nid.u_flags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
             nid.u_callback_message = WM_TRAYICON;
-            nid.h_icon = LoadIconW(null_mut(), 32512); // IDI_APPLICATION standard icon
+            nid.h_icon = hicon;
 
             let tip = "AltKeeper - iPhone Sideload Manager\0";
             for (i, c) in tip.encode_utf16().take(127).enumerate() {
