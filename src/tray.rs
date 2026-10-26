@@ -403,14 +403,15 @@ fn show(
     }
     let window = match WindowBuilder::new()
         .with_title("AltKeeper")
-        .with_inner_size(tao::dpi::LogicalSize::new(560.0, 860.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(940.0, 820.0))
+        .with_min_inner_size(tao::dpi::LogicalSize::new(420.0, 560.0))
         .with_window_icon(tao::window::Icon::from_rgba(LOGO_64.to_vec(), 64, 64).ok())
         .build(target)
     {
         Ok(w) => w,
         Err(e) => return crate::log::err(&format!("[tray] cannot open the window: {e}")),
     };
-    match WebViewBuilder::new().with_url(url).build(&window) {
+    match WebViewBuilder::new().with_url(url).with_hotkeys_zoom(false).build(&window) {
         Ok(webview) => {
             // Su macOS l'app non ha un'icona nel Dock: la finestra va portata davanti a mano.
             window.set_focus();
