@@ -211,18 +211,175 @@
     grid-column: 1 / -1;
   }
 
-  /* Modal */
+  /* Modals (QR & Setup Guide) */
   .modal-overlay {
-    position: fixed; inset: 0; background: rgba(5, 14, 17, 0.72);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    position: fixed; inset: 0; background: rgba(4, 14, 17, 0.76);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;
   }
   .modal-box {
-    background: var(--card); border: 1px solid var(--line); border-radius: 22px;
-    padding: 24px; max-width: 390px; width: 100%;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(134, 197, 188, 0.22);
+    background: var(--card); border: 1px solid var(--line); border-radius: 24px;
+    padding: 0; max-width: 430px; width: 100%; overflow: hidden;
+    box-shadow: 0 28px 60px rgba(0,0,0,0.52), 0 0 0 1px rgba(134, 197, 188, 0.24);
   }
-  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .modal-box.wide { max-width: 520px; max-height: 90vh; display: flex; flex-direction: column; }
+  .modal-hero {
+    position: relative; overflow: hidden;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, #015864 0%, #017482 52%, #189894 100%);
+    color: #fcfbf5;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .modal-hero h3 { margin: 0; font-size: 1.08rem; font-weight: 750; color: #fcfbf5; display: flex; align-items: center; gap: 9px; }
+  .modal-hero p { margin: 3px 0 0; font-size: 0.82rem; color: rgba(252, 251, 245, 0.84); }
+  .modal-close-btn {
+    width: 34px; height: 34px; min-height: 34px; border-radius: 10px; padding: 0;
+    background: rgba(252, 251, 245, 0.16); border: 1px solid rgba(252, 251, 245, 0.28);
+    color: #fcfbf5; font-size: 1rem; flex-shrink: 0;
+  }
+  .modal-close-btn:hover:not(:disabled) { background: rgba(252, 251, 245, 0.28); border-color: #fcfbf5; }
+  .modal-body { padding: 20px 22px 22px; overflow-y: auto; }
+  .qr-status-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 12px; border-radius: 12px; background: var(--card-alt); border: 1px solid var(--line);
+    margin-bottom: 16px; font-size: 0.83rem;
+  }
+  .qr-dot {
+    width: 9px; height: 9px; border-radius: 999px; background: var(--ok);
+    box-shadow: 0 0 0 3px var(--ok-bg); display: inline-block; margin-right: 6px;
+  }
+  .qr-stage {
+    position: relative; width: 224px; height: 224px; margin: 0 auto 16px;
+    padding: 16px; border-radius: 22px; background: #ffffff;
+    box-shadow: 0 12px 30px rgba(1, 116, 130, 0.16), inset 0 0 0 1px rgba(1, 120, 132, 0.14);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-stage svg { width: 100%; height: 100%; display: block; border-radius: 8px; }
+  .qr-corner {
+    position: absolute; width: 22px; height: 22px; border-color: #017884; border-style: solid; pointer-events: none;
+  }
+  .qr-corner.tl { top: 7px; left: 7px; border-width: 3px 0 0 3px; border-top-left-radius: 10px; }
+  .qr-corner.tr { top: 7px; right: 7px; border-width: 3px 3px 0 0; border-top-right-radius: 10px; }
+  .qr-corner.bl { bottom: 7px; left: 7px; border-width: 0 0 3px 3px; border-bottom-left-radius: 10px; }
+  .qr-corner.br { bottom: 7px; right: 7px; border-width: 0 3px 3px 0; border-bottom-right-radius: 10px; }
+  .qr-steps {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px;
+  }
+  .qr-step {
+    background: var(--card-alt); border: 1px solid var(--line); border-radius: 11px;
+    padding: 8px 6px; text-align: center; font-size: 0.76rem; line-height: 1.3; color: var(--muted);
+  }
+  .qr-step strong { display: block; color: var(--text); font-size: 0.8rem; margin-bottom: 2px; }
+  .qr-url-box {
+    display: flex; align-items: center; gap: 8px; background: var(--card-alt);
+    border: 1px solid var(--line); border-radius: 13px; padding: 5px 6px 5px 12px;
+  }
+  .qr-url-box input {
+    border: 0 !important; background: transparent !important; padding: 4px 0 !important;
+    font: 600 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+    color: var(--accent) !important; box-shadow: none !important;
+  }
+
+  /* Setup Guide Steps */
+  .guide-step {
+    background: var(--card-alt); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .guide-step:last-child { margin-bottom: 0; }
+  .guide-step-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-weight: 700; font-size: 0.93rem; margin-bottom: 6px; color: var(--text);
+  }
+  .guide-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 999px; background: var(--accent-gradient);
+    color: #fcfbf5; font-size: 0.78rem; font-weight: 800; margin-right: 7px; flex-shrink: 0;
+  }
+  .guide-step p { margin: 4px 0; font-size: 0.85rem; color: var(--muted); line-height: 1.45; }
+  .guide-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+    border-radius: 7px; background: var(--card); border: 1px solid var(--line);
+    font: 600 0.8rem ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--accent);
+    cursor: pointer;
+  }
+  .guide-chip:hover { border-color: var(--accent); }
+  .help-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; min-height: 30px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 700;
+    background: var(--card-alt); color: var(--accent); border: 1px solid var(--line);
+  }
+
+  /* Multi-View Switcher & App Squircle Icons */
+  .apps-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .apps-toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .view-switcher {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px; border-radius: 11px; background: var(--card-alt); border: 1px solid var(--line);
+  }
+  .view-btn {
+    min-height: 28px; padding: 4px 9px; border-radius: 8px; border: 0;
+    background: transparent; color: var(--muted); font-size: 0.76rem; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  }
+  .view-btn:hover:not(:disabled) { background: transparent; color: var(--text); }
+  .view-btn.active {
+    background: var(--accent-gradient); color: #fcfbf5;
+    box-shadow: 0 2px 6px var(--accent-glow);
+  }
+  .app-icon-squircle {
+    position: relative; width: 44px; height: 44px; border-radius: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #ffffff; font-weight: 800; font-size: 0.95rem;
+    letter-spacing: -0.02em; overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+    user-select: none;
+  }
+  .app-icon-squircle::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 52%);
+    pointer-events: none;
+  }
+  .app-icon-squircle.sm { width: 34px; height: 34px; border-radius: 9px; font-size: 0.78rem; }
+  .app-icon-squircle.lg { width: 50px; height: 50px; border-radius: 13px; font-size: 1.05rem; }
+  .app-icon-squircle svg { width: 60%; height: 60%; display: block; position: relative; z-index: 1; }
+  .app-bundle-sub {
+    font: 500 0.76rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); opacity: 0.85; overflow-wrap: anywhere;
+  }
+
+  /* Grid Mode for #apps */
+  #apps.view-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+  }
+  #apps.view-grid > li {
+    margin-bottom: 0; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  #apps.view-grid .item-head {
+    flex-direction: column; align-items: stretch; gap: 10px;
+  }
+  #apps.view-grid .app-card-top {
+    display: flex; align-items: center; gap: 11px; min-width: 0;
+  }
+  #apps.view-grid .app-card-actions {
+    display: flex; gap: 6px; width: 100%;
+  }
+  #apps.view-grid .app-card-actions button {
+    flex: 1 1 0; width: auto; min-height: 34px; font-size: 0.79rem;
+  }
+
+  /* Compact Mode for #apps */
+  #apps.view-compact > li {
+    padding: 8px 12px; margin-bottom: 6px; border-radius: 11px;
+  }
+  #apps.view-compact .bar, #apps.view-compact .app-bundle-sub, #apps.view-compact .app-last-renew {
+    display: none;
+  }
 
   .profile-check { width: 18px; height: 18px; cursor: pointer; margin-right: 4px; accent-color: var(--accent); flex-shrink: 0; }
   .bulk-bar {
@@ -461,15 +618,77 @@
 
   <div id="qr-modal" class="modal-overlay" hidden>
     <div class="modal-box">
-      <div class="modal-head">
-        <h3 style="margin:0" data-i18n="Open on your iPhone">📱 Open on your iPhone</h3>
-        <button type="button" id="qr-close" class="mini" style="width:36px; min-width:36px; padding:4px;">✕</button>
+      <div class="modal-hero">
+        <div>
+          <h3 data-i18n="Open on your iPhone">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span>iPhone Remote Control</span>
+          </h3>
+          <p data-i18n="Scan with your iPhone Camera to open AltKeeper in Safari over your home Wi-Fi.">Control renewals &amp; install IPAs directly from your iPhone</p>
+        </div>
+        <button type="button" id="qr-close" class="modal-close-btn" title="Close">✕</button>
       </div>
-      <p class="muted" style="margin:8px 0 14px; font-size:.88rem;" data-i18n="Scan with your iPhone Camera to open AltKeeper in Safari over your home Wi-Fi.">Scan with your iPhone Camera to open AltKeeper in Safari over your home Wi-Fi.</p>
-      <div id="qr-svg-container" style="display:flex; justify-content:center; align-items:center; background:#ffffff; padding:16px; border-radius:14px; margin:0 auto; max-width:210px; border:1px solid var(--line);"></div>
-      <div class="row" style="margin-top:14px; justify-content:center; gap:8px;">
-        <input type="text" id="qr-url-input" readonly style="font-size:16px; padding:8px; text-align:center; flex:1;">
-        <button type="button" id="btn-copy-qr-url" class="mini" style="width:auto; padding:8px 14px;" data-i18n="Copy">Copy</button>
+      <div class="modal-body">
+        <div class="qr-status-bar">
+          <span><span class="qr-dot"></span><strong>Home Wi-Fi Server</strong></span>
+          <span class="muted" id="qr-net-badge" style="font-family:ui-monospace,monospace; font-size:.8rem;">LAN :8787</span>
+        </div>
+        <div class="qr-stage">
+          <span class="qr-corner tl"></span><span class="qr-corner tr"></span>
+          <span class="qr-corner bl"></span><span class="qr-corner br"></span>
+          <div id="qr-svg-container" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"></div>
+        </div>
+        <div class="qr-steps">
+          <div class="qr-step"><strong>1. Wi-Fi</strong>Connect iPhone to same Wi-Fi</div>
+          <div class="qr-step"><strong>2. Camera</strong>Point iPhone Camera at QR</div>
+          <div class="qr-step"><strong>3. Safari</strong>Renew or install apps remotely</div>
+        </div>
+        <div class="qr-url-box">
+          <input type="text" id="qr-url-input" readonly>
+          <button type="button" id="btn-copy-qr-url" class="primary mini" style="width:auto; padding:7px 14px; border-radius:9px;" data-i18n="Copy">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tg-guide-modal" class="modal-overlay" hidden>
+    <div class="modal-box wide">
+      <div class="modal-hero">
+        <div>
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+            <span>كيف تربط بوت تيليجرام (Telegram Bot Setup)</span>
+          </h3>
+          <p>احصل على Bot Token و Chat ID في أقل من دقيقة</p>
+        </div>
+        <button type="button" id="tg-guide-close" class="modal-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body" dir="rtl" style="text-align:right;">
+        <div class="guide-step">
+          <div class="guide-step-head">
+            <span><span class="guide-num">1</span>إنشاء البوت والحصول على الـ Bot Token</span>
+            <button type="button" class="guide-chip" data-copy="@BotFather">نسخ @BotFather</button>
+          </div>
+          <p>1. افتح تطبيق تيليجرام وابحث عن الحساب الرسمي الموثق <code>@BotFather</code>.</p>
+          <p>2. أرسل له الأمر <code>/newbot</code> ثم اختر اسماً للبوت (مثلاً <code>AltKeeper</code>) ومعرّفاً ينتهي بكلمة <code>bot</code>.</p>
+          <p>3. سيرسل لك BotFather كود التوكن تحت جملة <em>Use this token to access the HTTP API</em> بالشكل التالي:<br>
+          <code>1234567890:AAFxyz...</code> — انسخه والصقه في خانة <strong>Bot Token</strong>.</p>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-head">
+            <span><span class="guide-num">2</span>تفعيل البوت الخاص بك (خطوة مهمة جداً)</span>
+          </div>
+          <p>اضغط على رابط البوت الجديد الذي أنشأته في رسالة BotFather واضغط على زر <strong>Start / بدء</strong> (<code>/start</code>) داخل المحادثة حتى يُسمح للبوت بإرسال الإشعارات إليك.</p>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-head">
+            <span><span class="guide-num">3</span>معرفة رقم حسابك (Chat ID)</span>
+            <button type="button" class="guide-chip" data-copy="@userinfobot">نسخ @userinfobot</button>
+          </div>
+          <p>1. ابحث في تيليجرام عن البوت <code>@userinfobot</code> (أو <code>@GetMyId_bot</code>) واضغط <strong>Start</strong>.</p>
+          <p>2. سيردّ عليك فوراً برقم الـ <strong>Id</strong> الخاص بك (أرقام فقط مثل <code>987654321</code>).</p>
+          <p>3. انسخ هذا الرقم وضعه في خانة <strong>Chat ID</strong> ثم اضغط <strong>Save bot</strong> وبعدها <strong>Send test</strong> للتجربة الفورية!</p>
+        </div>
       </div>
     </div>
   </div>
@@ -491,11 +710,18 @@
       </section>
 
       <section class="card">
-        <div class="row" style="justify-content:space-between; margin-bottom: 10px;">
+        <div class="apps-toolbar">
           <h2 data-i18n="Your apps" style="margin:0">Your apps</h2>
-          <div class="quotas-row" id="quotas-row" hidden>
-            <span class="quota-badge" id="quota-apps"></span>
-            <span class="quota-badge" id="quota-appids"></span>
+          <div class="apps-toolbar-right">
+            <div class="quotas-row" id="quotas-row" hidden>
+              <span class="quota-badge" id="quota-apps"></span>
+              <span class="quota-badge" id="quota-appids"></span>
+            </div>
+            <div class="view-switcher" id="apps-view-switcher" role="group" aria-label="View mode">
+              <button type="button" class="view-btn" data-view="list" title="Detailed List View">☰ List</button>
+              <button type="button" class="view-btn" data-view="grid" title="Grid Cards View">⊞ Grid</button>
+              <button type="button" class="view-btn" data-view="compact" title="Compact View">≡ Compact</button>
+            </div>
           </div>
         </div>
         <p class="muted" id="apps-empty" hidden></p>
@@ -656,6 +882,33 @@
         </div>
         <div class="banner bad" id="discord-error" hidden></div>
         <div class="banner" id="discord-test-result" role="status" aria-live="polite" hidden></div>
+        <div class="divider"></div>
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label for="telegram-token" style="margin:0" data-i18n="Telegram Bot notifications">Telegram Bot notifications</label>
+          <button type="button" id="btn-tg-guide" class="help-btn" title="How to get Telegram Bot Token and Chat ID">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span data-i18n="How to connect?">How to connect? / شرح الربط</span>
+          </button>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <span class="pill" id="telegram-pill" data-i18n="Not configured">Not configured</span>
+          <span class="muted" id="telegram-chat-label" data-i18n="Alerts you on Telegram if automatic renewal fails.">Alerts you on Telegram if automatic renewal fails.</span>
+        </div>
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <div style="flex: 1.4 1 180px; min-width:0;">
+            <input type="password" id="telegram-token" placeholder="Bot Token (123456:AAF...)" autocomplete="off">
+          </div>
+          <div style="flex: 1 1 130px; min-width:0;">
+            <input type="text" id="telegram-chat-id" placeholder="Chat ID (e.g. 987654321)" autocomplete="off">
+          </div>
+        </div>
+        <div class="row action-row" style="margin-top:10px">
+          <button id="telegram-save" type="button" data-i18n="Save bot">Save bot</button>
+          <button id="telegram-clear" type="button" data-i18n="Clear bot">Clear bot</button>
+          <button id="telegram-test" type="button" data-i18n="Send test">Send test</button>
+        </div>
+        <div class="banner bad" id="telegram-error" hidden></div>
+        <div class="banner" id="telegram-test-result" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="card hist">
@@ -697,6 +950,79 @@ let state = null, showForm = false, timer = null, sending = false, uploading = f
 let pendingInstall = null;
 let expandedApps = new Set(), expandedProfiles = new Set(), showPreview = false;
 let selectedProfileUuids = new Set();
+let appsViewMode = "list";
+try { appsViewMode = localStorage.getItem("altkeeper_apps_view") || "list"; } catch (_) {}
+
+function cleanBundleId(bundle) {
+  return String(bundle || "").replace(/\.[A-Z0-9]{10}$/, "");
+}
+
+function createAppIcon(label, bundle, sizeClass) {
+  const wrap = document.createElement("div");
+  wrap.className = "app-icon-squircle" + (sizeClass ? " " + sizeClass : "");
+  const key = ((label || "") + " " + (bundle || "")).toLowerCase();
+  let bg = "";
+  let svg = "";
+  if (key.includes("youtube") || key.includes("uyou") || key.includes("ytlite") || key.includes("cercube")) {
+    bg = "linear-gradient(135deg, #ff1e27 0%, #b80008 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.5v11l9.5-5.5L8 6.5z"/></svg>';
+  } else if (key.includes("altstore") || key.includes("altkeeper")) {
+    bg = "linear-gradient(135deg, #017884 0%, #24aca6 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 3 21 19 3 19 12 3"/></svg>';
+  } else if (key.includes("sidestore")) {
+    bg = "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v10l9 5 9-5V7l-9-5z"/><path d="M12 22V12"/></svg>';
+  } else if (key.includes("aidoku") || key.includes("paperback") || key.includes("tachimanga") || key.includes("manga")) {
+    bg = "linear-gradient(135deg, #ec4899 0%, #be185d 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+  } else if (key.includes("delta") || key.includes("retroarch") || key.includes("ppsspp") || key.includes("dolphin") || key.includes("gamma")) {
+    bg = "linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>';
+  } else if (key.includes("spotify") || key.includes("eevee") || key.includes("spotilife")) {
+    bg = "linear-gradient(135deg, #1db954 0%, #0f8037 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M5 9.5c4.5-1.5 9.5-1 14 1.5M6 13.5c3.6-1.1 7.6-.7 11 1.2M7.5 17.2c2.7-.8 5.6-.5 8 .9"/></svg>';
+  } else if (key.includes("instagram") || key.includes("rocket") || key.includes("insta")) {
+    bg = "linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #8134af 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>';
+  } else if (key.includes("discord") || key.includes("enmity") || key.includes("vendetta")) {
+    bg = "linear-gradient(135deg, #5865f2 0%, #3b44c4 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+  } else if (key.includes("tiktok") || key.includes("bhtiktok")) {
+    bg = "linear-gradient(135deg, #111827 0%, #00f2fe 50%, #fe0979 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+  } else if (key.includes("vlc") || key.includes("infuse") || key.includes("kodi")) {
+    bg = "linear-gradient(135deg, #f97316 0%, #c2410c 100%)";
+    svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+  } else {
+    const palettes = [
+      "linear-gradient(135deg, #017884 0%, #189894 100%)",
+      "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+      "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+      "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+      "linear-gradient(135deg, #059669 0%, #047857 100%)",
+      "linear-gradient(135deg, #d97706 0%, #b45309 100%)"
+    ];
+    let hash = 0;
+    const str = String(label || bundle || "App");
+    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    bg = palettes[Math.abs(hash) % palettes.length];
+    const clean = String(label || "App").replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, "").trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    const initials = parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : (clean.slice(0, 2) || "AP").toUpperCase();
+    wrap.style.background = bg;
+    const textSpan = document.createElement("span");
+    textSpan.style.position = "relative";
+    textSpan.style.zIndex = "1";
+    textSpan.textContent = initials;
+    wrap.append(textSpan);
+    return wrap;
+  }
+  wrap.style.background = bg;
+  wrap.innerHTML = svg;
+  return wrap;
+}
 
 function copyText(text) {
   if (navigator.clipboard && window.isSecureContext) {
@@ -857,24 +1183,33 @@ function render(s) {
     qRow.hidden = true;
   }
 
+  // Sync view switcher buttons
+  document.querySelectorAll("#apps-view-switcher .view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.view === appsViewMode);
+  });
+
   // One app per host bundle. Members are separate signing profiles.
   const canRenew = s.account.present && s.account.password_saved && s.account.team && !s.busy;
   const ul = $("apps");
+  ul.className = "plain view-" + appsViewMode;
   ul.replaceChildren();
   s.apps.forEach((a) => {
     const members = a.members || [{bundle:a.bundle,label:a.label,days:a.days,expires:a.expires}];
     const pct = Math.max(4, Math.min(100, Math.round((Math.max(a.days, 0) / 7) * 100)));
     const bar = div("bar", span(""));
     bar.firstChild.style.width = pct + "%";
+    const iconSize = appsViewMode === "grid" ? "lg" : appsViewMode === "compact" ? "sm" : "";
+    const appIcon = createAppIcon(a.label, a.bundle, iconSize);
     const details = div("item-info",
       div("app-name", document.createTextNode(a.label)),
+      div("app-bundle-sub", document.createTextNode(cleanBundleId(a.bundle))),
       div("muted", span(days(a.days), "when"),
         document.createTextNode(" · " + (a.expires || "").slice(0, 10) +
         " · " + profilesText(members.length))));
     const last = (s.app_status || {})[a.bundle];
     if (last) {
       const date = new Date(last.at * 1000).toLocaleString("en-US", {timeZone:"UTC"});
-      details.append(div("muted", document.createTextNode(t("Last profile install: ") +
+      details.append(div("muted app-last-renew", document.createTextNode(t("Last profile install: ") +
         last.status + " · " + date + " UTC (" + last.renewed + "/" + last.total + ")")));
     }
     const renewBtn = document.createElement("button");
@@ -895,8 +1230,15 @@ function render(s) {
       else expandedApps.add(a.bundle);
       render(state);
     };
-    const item = li(a.level,
-      div("item-head", details, renewBtn, expandBtn), bar);
+    let headRow;
+    if (appsViewMode === "grid") {
+      headRow = div("item-head",
+        div("app-card-top", appIcon, details),
+        div("app-card-actions", renewBtn, expandBtn));
+    } else {
+      headRow = div("item-head", appIcon, details, renewBtn, expandBtn);
+    }
+    const item = li(a.level, headRow, bar);
     if (expandedApps.has(a.bundle)) {
       const nested = div("nested");
       members.forEach(m => nested.append(div("",
@@ -950,6 +1292,15 @@ function render(s) {
   $("discord-pill").className = "pill" + (auto.discord_configured ? " ok" : "");
   $("discord-clear").disabled = !auto.discord_configured;
   $("discord-test").disabled = !auto.discord_configured;
+  if ($("telegram-pill")) {
+    $("telegram-pill").textContent = auto.telegram_configured ? t("Configured") : t("Not configured");
+    $("telegram-pill").className = "pill" + (auto.telegram_configured ? " ok" : "");
+    $("telegram-clear").disabled = !auto.telegram_configured;
+    $("telegram-test").disabled = !auto.telegram_configured;
+    if (auto.telegram_configured && auto.telegram_chat_id && !$("telegram-chat-id").value) {
+      $("telegram-chat-id").placeholder = "Chat ID: " + auto.telegram_chat_id;
+    }
+  }
 
   // Prune any stale UUIDs that are no longer on the iPhone
   const validProfileUuids = new Set((s.profiles || []).map(p => p.uuid));
@@ -999,7 +1350,8 @@ function render(s) {
       else expandedProfiles.add(root);
       render(state);
     };
-    const item = li("", div("item-head", groupCb, details, toggle));
+    const groupIcon = createAppIcon(label, root, "sm");
+    const item = li("", div("item-head", groupCb, groupIcon, details, toggle));
     if (expandedProfiles.has(root)) {
       const nested = div("nested");
       profiles.forEach(prof => {
@@ -1424,16 +1776,78 @@ if (btnClearBackups) {
   };
 }
 
+document.querySelectorAll("#apps-view-switcher .view-btn").forEach(btn => {
+  btn.onclick = () => {
+    appsViewMode = btn.dataset.view || "list";
+    try { localStorage.setItem("altkeeper_apps_view", appsViewMode); } catch (_) {}
+    if (state) render(state);
+  };
+});
+
+$("telegram-save").onclick = () => {
+  const token = $("telegram-token").value.trim();
+  const chatId = $("telegram-chat-id").value.trim();
+  banner("telegram-error", "");
+  if (!token || !chatId) {
+    return banner("telegram-error", t("Enter both the Telegram Bot Token and Chat ID (click 'How to connect?' for help)."), "bad");
+  }
+  act(async () => {
+    await api("/api/telegram", { bot_token: token, chat_id: chatId });
+    $("telegram-token").value = "";
+    banner("telegram-test-result", t("Telegram bot saved. Click 'Send test' to verify delivery."), "good");
+  }, "telegram-error");
+};
+$("telegram-clear").onclick = () => {
+  if (confirm(t("Remove the saved Telegram bot configuration?"))) {
+    act(async () => {
+      await api("/api/telegram", { clear: true });
+      $("telegram-chat-id").value = "";
+      $("telegram-chat-id").placeholder = "Chat ID (e.g. 987654321)";
+      banner("telegram-test-result", "");
+    }, "telegram-error");
+  }
+};
+$("telegram-test").onclick = async () => {
+  banner("telegram-test-result", "");
+  banner("telegram-error", "");
+  $("telegram-test").disabled = true;
+  try {
+    await api("/api/telegram/test", {});
+    banner("telegram-test-result", t("Test notification sent! Check your Telegram chat."), "good");
+  } catch (e) {
+    banner("telegram-test-result", e.message, "bad");
+  } finally {
+    refresh();
+  }
+};
+
+$("btn-tg-guide").onclick = () => { $("tg-guide-modal").hidden = false; };
+$("tg-guide-close").onclick = () => { $("tg-guide-modal").hidden = true; };
+$("tg-guide-modal").onclick = (e) => { if (e.target === $("tg-guide-modal")) $("tg-guide-modal").hidden = true; };
+document.querySelectorAll(".guide-chip[data-copy]").forEach(chip => {
+  chip.onclick = () => {
+    const val = chip.dataset.copy;
+    copyText(val);
+    const orig = chip.textContent;
+    chip.textContent = "✓ تم النسخ (" + val + ")";
+    setTimeout(() => { chip.textContent = orig; }, 1600);
+  };
+});
+
 $("btn-phone-connect").onclick = () => {
   const lanIp = state?.lan_ip || window.location.hostname;
   const port = window.location.port || "8787";
   const url = "http://" + lanIp + ":" + port;
   $("qr-url-input").value = url;
+  const badge = $("qr-net-badge");
+  if (badge) badge.textContent = lanIp + ":" + port;
   try {
     const qr = qrcode(0, "M");
     qr.addData(url);
     qr.make();
-    $("qr-svg-container").innerHTML = qr.createSvgTag(5, 0);
+    const svg = qr.createSvgTag({ cellSize: 6, margin: 4, scalable: true })
+      .replace('fill="black"', 'fill="#015864"');
+    $("qr-svg-container").innerHTML = svg;
   } catch (err) {
     $("qr-svg-container").textContent = url;
   }
@@ -1443,7 +1857,10 @@ $("btn-phone-connect").onclick = () => {
 $("qr-close").onclick = () => { $("qr-modal").hidden = true; };
 $("qr-modal").onclick = (e) => { if (e.target === $("qr-modal")) $("qr-modal").hidden = true; };
 window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("qr-modal").hidden) $("qr-modal").hidden = true;
+  if (e.key === "Escape") {
+    if (!$("qr-modal").hidden) $("qr-modal").hidden = true;
+    if (!$("tg-guide-modal").hidden) $("tg-guide-modal").hidden = true;
+  }
 });
 $("btn-copy-qr-url").onclick = () => {
   copyText($("qr-url-input").value);

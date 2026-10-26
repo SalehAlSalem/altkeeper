@@ -35,6 +35,7 @@ const FAVICON_32: &[u8] = include_bytes!("web/favicon-32.png");
 const RENEW_LOG: &str = "renew.log";
 const AUTO_RENEW_CONFIG: &str = "state/auto-renew.json";
 const DISCORD_WEBHOOK_FILE: &str = "state/discord-webhook";
+const TELEGRAM_CONFIG_FILE: &str = "state/telegram-bot.json";
 const APP_STATUS_FILE: &str = "state/app-renew-status.json";
 const RETRY_SECONDS: u64 = 30 * 60;
 const MAX_RETRIES: u8 = 2;
@@ -334,6 +335,87 @@ fn send_discord_message(message: &str) -> Result<(), String> {
     else { Err("Discord rejected webhook notification".into()) }
 }
 
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct TelegramConfig {
+    bot_token: String,
+    chat_id: String,
+}
+
+fn validate_telegram_token(token: &str) -> bool {
+    let Some((bot_id, secret)) = token.split_once(':') else { return false };
+    bot_id.len() >= 5 && bot_id.len() <= 20 && secret.len() >= 20 && secret.len() <= 120
+        && bot_id.bytes().all(|b| b.is_ascii_digit())
+        && secret.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+fn validate_telegram_chat_id(chat_id: &str) -> bool {
+    if chat_id.is_empty() || chat_id.len() > 64 { return false; }
+    if let Some(rest) = chat_id.strip_prefix('-') {
+        !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit())
+    } else if let Some(rest) = chat_id.strip_prefix('@') {
+        rest.len() >= 4 && rest.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    } else {
+        chat_id.bytes().all(|b| b.is_ascii_digit())
+    }
+}
+
+fn load_telegram_config() -> Option<TelegramConfig> {
+    let raw = std::fs::read_to_string(TELEGRAM_CONFIG_FILE).ok()?;
+    let cfg: TelegramConfig = serde_json::from_str(&raw).ok()?;
+    if validate_telegram_token(cfg.bot_token.trim()) && validate_telegram_chat_id(cfg.chat_id.trim()) {
+        Some(TelegramConfig {
+            bot_token: cfg.bot_token.trim().to_string(),
+            chat_id: cfg.chat_id.trim().to_string(),
+        })
+    } else {
+        None
+    }
+}
+
+fn telegram_configured() -> bool {
+    load_telegram_config().is_some()
+}
+
+fn send_telegram_failure(error: &str) -> Result<(), String> {
+    let message = format!(
+        "⚠️ AltKeeper: automatic renewal failed after retries.\n{}",
+        error.chars().take(240).collect::<String>()
+    );
+    send_telegram_message(&message)
+}
+
+fn send_telegram_message(message: &str) -> Result<(), String> {
+    use std::io::Write;
+    let Some(cfg) = load_telegram_config() else {
+        return Err("Telegram bot is not configured".into());
+    };
+    let url = format!("https://api.telegram.org/bot{}/sendMessage", cfg.bot_token);
+    let body = json!({
+        "chat_id": cfg.chat_id,
+        "text": message,
+    }).to_string();
+    let mut child = std::process::Command::new("curl")
+        .args([
+            "--fail", "--silent", "--show-error", "--max-time", "12",
+            "--request", "POST", "--header", "Content-Type: application/json",
+            "--data-raw", &body, "--config", "-",
+        ])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(crate::phone::dbg)?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(format!("url = \"{url}\"\n").as_bytes()).map_err(crate::phone::dbg)?;
+    }
+    let output = child.wait_with_output().map_err(crate::phone::dbg)?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err("Telegram rejected message. Check Bot Token, Chat ID, and make sure you sent /start to the bot.".into())
+    }
+}
+
 async fn auto_renew_loop(app: Arc<App>) {
     loop {
         let now_secs = now();
@@ -428,6 +510,8 @@ pub async fn serve(
         .route("/api/auto-renew", post(update_auto_renew))
         .route("/api/discord", post(update_discord))
         .route("/api/discord/test", post(test_discord))
+        .route("/api/telegram", post(update_telegram))
+        .route("/api/telegram/test", post(test_telegram))
         .route("/api/profile/remove", post(remove_profile))
         .route("/api/profile/restore", post(restore_profile))
         .route("/api/profile/backup/remove", post(remove_backup))
@@ -564,6 +648,7 @@ fn host_is_local_or_lan(headers: &HeaderMap) -> bool {
     }
 }
 
+#[allow(dead_code)]
 pub fn discover_lan_ip() -> Option<String> {
     discover_lan_ip_for(None)
 }
@@ -725,6 +810,8 @@ async fn state(State(app): State<Arc<App>>) -> Json<Value> {
             "retry_at": schedule.retry_at,
             "last_error": schedule.last_error,
             "discord_configured": discord_configured(),
+            "telegram_configured": telegram_configured(),
+            "telegram_chat_id": load_telegram_config().map(|c| c.chat_id),
             "time_zone": "UTC",
             "next_run": next_scheduled,
         },
@@ -907,6 +994,63 @@ async fn test_discord() -> (StatusCode, Json<Value>) {
     match sent {
         Ok(Ok(())) => json_ok(),
         _ => json_err(StatusCode::BAD_GATEWAY, "Discord test delivery failed. Check webhook permissions and network access."),
+    }
+}
+
+#[derive(Deserialize)]
+struct TelegramReq {
+    #[serde(default)]
+    bot_token: Option<String>,
+    #[serde(default)]
+    chat_id: Option<String>,
+    #[serde(default)]
+    clear: bool,
+}
+
+async fn update_telegram(
+    Json(req): Json<TelegramReq>,
+) -> (StatusCode, Json<Value>) {
+    if req.clear {
+        match std::fs::remove_file(TELEGRAM_CONFIG_FILE) {
+            Ok(()) => return json_ok(),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return json_ok(),
+            Err(_) => return json_err(StatusCode::INTERNAL_SERVER_ERROR, "Could not clear Telegram config"),
+        }
+    }
+    let token = req.bot_token.unwrap_or_default().trim().to_string();
+    let chat_id = req.chat_id.unwrap_or_default().trim().to_string();
+    if !validate_telegram_token(&token) {
+        return json_err(StatusCode::BAD_REQUEST, "Enter a valid Telegram Bot Token (e.g. 123456789:AAF...).");
+    }
+    if !validate_telegram_chat_id(&chat_id) {
+        return json_err(StatusCode::BAD_REQUEST, "Enter a valid Telegram Chat ID (e.g. 987654321 or -100...).");
+    }
+    let data = match serde_json::to_vec_pretty(&TelegramConfig { bot_token: token, chat_id }) {
+        Ok(d) => d,
+        Err(_) => return json_err(StatusCode::INTERNAL_SERVER_ERROR, "Could not serialize Telegram config"),
+    };
+    if std::fs::create_dir_all("state").is_err()
+        || crate::fsperm::restrict_dir(Path::new("state")).is_err()
+        || crate::fsperm::write_private(Path::new(TELEGRAM_CONFIG_FILE), &data).is_err()
+    {
+        return json_err(StatusCode::INTERNAL_SERVER_ERROR, "Could not save Telegram config");
+    }
+    json_ok()
+}
+
+async fn test_telegram() -> (StatusCode, Json<Value>) {
+    if !telegram_configured() {
+        return json_err(StatusCode::BAD_REQUEST, "Configure and save your Telegram Bot Token and Chat ID first.");
+    }
+    let sent = tokio::task::spawn_blocking(|| {
+        send_telegram_message(
+            "✅ AltKeeper test notification: Your Telegram bot is connected and working! No renewal was performed."
+        )
+    }).await;
+    match sent {
+        Ok(Ok(())) => json_ok(),
+        Ok(Err(e)) => json_err(StatusCode::BAD_GATEWAY, &e),
+        _ => json_err(StatusCode::BAD_GATEWAY, "Telegram test delivery failed."),
     }
 }
 
@@ -1602,6 +1746,13 @@ async fn run_renew(
             match send_discord_failure(err) {
                 Ok(()) => app.push_line("Discord failure notification sent."),
                 Err(e) => app.push_line(&format!("Discord notification failed: {e}")),
+            }
+        }
+        if notify && telegram_configured() {
+            let err = error.as_deref().unwrap_or("Unknown renewal error");
+            match send_telegram_failure(err) {
+                Ok(()) => app.push_line("Telegram failure notification sent."),
+                Err(e) => app.push_line(&format!("Telegram notification failed: {e}")),
             }
         }
     }
