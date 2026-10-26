@@ -361,7 +361,7 @@ fn http_get(addr: SocketAddr, path: &str) -> Option<String> {
     };
     let mut s = TcpStream::connect_timeout(&query_addr, Duration::from_secs(5)).ok()?;
     s.set_read_timeout(Some(Duration::from_secs(60))).ok()?;
-    write!(s, "GET {path} HTTP/1.0\r\nHost: {addr}\r\n\r\n").ok()?;
+    write!(s, "GET {path} HTTP/1.0\r\nHost: {query_addr}\r\n\r\n").ok()?;
     let mut body = String::new();
     s.read_to_string(&mut body).ok()?;
     body.split_once("\r\n\r\n").map(|(_, b)| b.to_string())
@@ -403,7 +403,7 @@ fn show(
     }
     let window = match WindowBuilder::new()
         .with_title("AltKeeper")
-        .with_inner_size(tao::dpi::LogicalSize::new(940.0, 820.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(1040.0, 840.0))
         .with_min_inner_size(tao::dpi::LogicalSize::new(420.0, 560.0))
         .with_window_icon(tao::window::Icon::from_rgba(LOGO_64.to_vec(), 64, 64).ok())
         .build(target)
@@ -567,11 +567,19 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
                 #[cfg(target_os = "macos")]
                 app_menu.init_for_nsapp();
                 tray = Some(build_tray(&menu));
+                show(&mut slot, target, &url);
             }
-            Event::UserEvent(UserEvent::Tray(TrayIconEvent::DoubleClick {
-                button: MouseButton::Left,
-                ..
-            })) => show(&mut slot, target, &url),
+            Event::UserEvent(UserEvent::Tray(
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: tray_icon::MouseButtonState::Up,
+                    ..
+                }
+                | TrayIconEvent::DoubleClick {
+                    button: MouseButton::Left,
+                    ..
+                },
+            )) => show(&mut slot, target, &url),
             Event::UserEvent(UserEvent::Menu(e)) => {
                 if e.id == open.id() {
                     show(&mut slot, target, &url);
