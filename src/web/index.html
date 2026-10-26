@@ -158,17 +158,6 @@
     margin: 0;
     color: #fcfbf5;
   }
-  .brand-badge {
-    font-size: 0.73rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: rgba(252, 251, 245, 0.16);
-    color: #fcfbf5;
-    border: 1px solid rgba(252, 251, 245, 0.26);
-  }
   .top-bar .sub {
     margin: 4px 0 0;
     color: rgba(252, 251, 245, 0.84);
@@ -455,12 +444,11 @@
   <header class="top-bar">
     <div class="brand">
       <div class="brand-logo-wrap">
-        <img src="/apple-touch-icon.png" class="brand-logo" alt="AltKeeper Logo" width="50" height="50">
+        <img src="/apple-touch-icon.png?v=2" class="brand-logo" alt="AltKeeper Logo" width="50" height="50">
       </div>
       <div class="brand-text">
         <div class="brand-title-row">
           <h1>AltKeeper</h1>
-          <span class="brand-badge">Wi-Fi Guard</span>
         </div>
         <p class="sub" data-i18n="Keeps your iPhone apps alive by renewing their profiles.">Keeps your iPhone apps alive by renewing their profiles.</p>
       </div>
@@ -536,16 +524,20 @@
         </div>
         <p class="muted" data-i18n="Old profiles may remain after renewal. Deleting a profile still needed by an installed app can stop it opening. A verified server-side backup is saved before removal.">Old profiles may remain after renewal. Deleting a profile still needed by an installed app can stop it opening. A verified server-side backup is saved before removal.</p>
         <div id="bulk-select-bar" class="bulk-bar" hidden>
-          <label class="check" style="margin:0; font-weight:600; cursor:pointer;">
-            <input type="checkbox" id="cb-select-all-profiles"> <span data-i18n="Select all profiles">Select all profiles</span>
+          <label class="check" style="margin:0; font-weight:600; cursor:pointer; align-items:center;">
+            <input type="checkbox" id="cb-select-all-profiles" class="profile-check"> <span data-i18n="Select all profiles">Select all profiles</span>
           </label>
+          <button type="button" id="btn-select-expired" class="mini" style="width:auto; padding:4px 10px; min-height:30px; font-size:.78rem;" data-i18n="Select expired">Select expired</button>
         </div>
         <p class="muted" id="profiles-empty" hidden></p>
         <ul class="plain" id="profiles"></ul>
       </section>
 
       <section class="card">
-        <h2 data-i18n="Saved profile backups">Saved profile backups</h2>
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <h2 data-i18n="Saved profile backups" style="margin:0">Saved profile backups</h2>
+          <button id="btn-clear-backups" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" hidden data-i18n="Delete all backups">Delete all backups</button>
+        </div>
         <p class="muted" data-i18n="Restore a backed-up profile by UUID. Restoring does not extend its original expiry date. The backup is retained.">Restore a backed-up profile by UUID. Restoring does not extend its original expiry date. The backup is retained.</p>
         <p class="muted" id="backups-empty"></p>
         <ul class="plain" id="backups"></ul>
@@ -706,12 +698,45 @@ let pendingInstall = null;
 let expandedApps = new Set(), expandedProfiles = new Set(), showPreview = false;
 let selectedProfileUuids = new Set();
 
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).catch(() => fallbackCopyText(text));
+  }
+  return Promise.resolve(fallbackCopyText(text));
+}
+function fallbackCopyText(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand("copy"); } catch (_) {}
+  document.body.removeChild(ta);
+}
+
 function updateBulkDeleteUI() {
+  const allProfiles = state?.profiles || [];
+  const total = allProfiles.length;
   const count = selectedProfileUuids.size;
   const countEl = $("bulk-delete-count");
   if (countEl) countEl.textContent = count;
   const btn = $("btn-bulk-delete");
   if (btn) btn.disabled = count === 0 || state?.busy || state?.phone?.reachable !== true;
+  const cbAll = $("cb-select-all-profiles");
+  if (cbAll) {
+    cbAll.disabled = total === 0 || state?.busy || state?.phone?.reachable !== true;
+    cbAll.checked = total > 0 && count === total;
+    cbAll.indeterminate = count > 0 && count < total;
+  }
+  const btnExp = $("btn-select-expired");
+  if (btnExp) {
+    const expiredCount = allProfiles.filter(p => p.days < 0).length;
+    btnExp.hidden = expiredCount === 0;
+    btnExp.disabled = state?.busy || state?.phone?.reachable !== true;
+    btnExp.textContent = t("Select expired") + " (" + expiredCount + ")";
+  }
 }
 let autoDraftDirty = false, autoSavePending = false;
 let refreshInFlight = false, refreshQueued = false;
@@ -926,6 +951,12 @@ function render(s) {
   $("discord-clear").disabled = !auto.discord_configured;
   $("discord-test").disabled = !auto.discord_configured;
 
+  // Prune any stale UUIDs that are no longer on the iPhone
+  const validProfileUuids = new Set((s.profiles || []).map(p => p.uuid));
+  for (const u of Array.from(selectedProfileUuids)) {
+    if (!validProfileUuids.has(u)) selectedProfileUuids.delete(u);
+  }
+
   // Show provisioning profiles only when expanded, without moving controls when labels wrap.
   const pu = $("profiles");
   pu.replaceChildren();
@@ -937,8 +968,29 @@ function render(s) {
   });
   grouped.forEach((profiles, root) => {
     const label = (s.apps.find(a => a.bundle === root) || {}).label || root;
+    const selectedInGroup = profiles.filter(p => selectedProfileUuids.has(p.uuid)).length;
+    const expiredInGroup = profiles.filter(p => p.days < 0).length;
+    let subText = profiles.length + " saved-on-phone profiles";
+    if (expiredInGroup > 0) subText += " · " + expiredInGroup + " expired";
+    if (selectedInGroup > 0) subText += " · " + selectedInGroup + " selected";
+
+    const groupCb = document.createElement("input");
+    groupCb.type = "checkbox";
+    groupCb.className = "profile-check";
+    groupCb.disabled = s.busy || s.phone.reachable !== true;
+    groupCb.checked = profiles.length > 0 && selectedInGroup === profiles.length;
+    groupCb.indeterminate = selectedInGroup > 0 && selectedInGroup < profiles.length;
+    groupCb.title = t("Select all profiles for ") + label;
+    groupCb.onchange = () => {
+      profiles.forEach(p => {
+        if (groupCb.checked) selectedProfileUuids.add(p.uuid);
+        else selectedProfileUuids.delete(p.uuid);
+      });
+      render(state);
+    };
+
     const details = div("item-info", div("app-name", document.createTextNode(label)),
-      div("muted", document.createTextNode((profiles.length + " saved-on-phone profiles"))));
+      div("muted", document.createTextNode(subText)));
     const toggle = document.createElement("button");
     toggle.type = "button"; toggle.className = "mini";
     toggle.textContent = expandedProfiles.has(root) ? t("Hide ▲") : t("Show ▼");
@@ -947,7 +999,7 @@ function render(s) {
       else expandedProfiles.add(root);
       render(state);
     };
-    const item = li("", div("item-head", details, toggle));
+    const item = li("", div("item-head", groupCb, details, toggle));
     if (expandedProfiles.has(root)) {
       const nested = div("nested");
       profiles.forEach(prof => {
@@ -961,6 +1013,7 @@ function render(s) {
         remove.disabled = s.busy || s.phone.reachable !== true;
         remove.onclick = () => {
           if (confirm("Delete profile " + prof.uuid + "? An original verified backup will be saved first. " + "Removing an active profile may prevent the app from opening.")) {
+            selectedProfileUuids.delete(prof.uuid);
             act(() => api("/api/profile/remove", {uuid:prof.uuid}));
           }
         };
@@ -971,7 +1024,7 @@ function render(s) {
         cb.onchange = () => {
           if (cb.checked) selectedProfileUuids.add(prof.uuid);
           else selectedProfileUuids.delete(prof.uuid);
-          updateBulkDeleteUI();
+          render(state);
         };
         nested.append(div("item-head", cb, info, remove));
       });
@@ -988,23 +1041,42 @@ function render(s) {
 
   const backups = $("backups");
   backups.replaceChildren();
-  (s.backups || []).forEach(b => {
+  const backupList = s.backups || [];
+  const clearBackupsBtn = $("btn-clear-backups");
+  if (clearBackupsBtn) {
+    clearBackupsBtn.hidden = backupList.length === 0;
+    clearBackupsBtn.disabled = s.busy;
+  }
+  backupList.forEach(b => {
+    const expInfo = typeof b.days === "number"
+      ? days(b.days) + " · " + t("Expires ") + (b.expires || "").slice(0,10)
+      : t("Expires ") + (b.expires || "").slice(0,10);
     const info = div("item-info",
       div("app-name", document.createTextNode(b.bundle || t("Unknown bundle"))),
-      div("muted", document.createTextNode(t("Profile ") + b.uuid)),
-      div("muted", document.createTextNode(t("Expires ") + b.expires.slice(0,10))));
+      div("muted", document.createTextNode(expInfo)),
+      div("muted", document.createTextNode(t("Profile ") + b.uuid)));
     const restore = document.createElement("button");
     restore.type = "button"; restore.className = "mini";
     restore.textContent = t("Restore");
-    restore.disabled = s.busy;
+    restore.disabled = s.busy || s.phone.reachable !== true;
     restore.onclick = () => {
       if (confirm("Restore profile " + b.uuid + " to the iPhone? This does not renew the expiry.")) {
         act(() => api("/api/profile/restore", {uuid:b.uuid}));
       }
     };
-    backups.append(li("", div("item-head", info, restore)));
+    const delBackup = document.createElement("button");
+    delBackup.type = "button"; delBackup.className = "mini";
+    delBackup.style.color = "var(--urgent)";
+    delBackup.textContent = t("Delete");
+    delBackup.disabled = s.busy;
+    delBackup.onclick = () => {
+      if (confirm("Delete saved backup " + b.uuid + " permanently from the server?")) {
+        act(() => api("/api/profile/backup/remove", {uuid:b.uuid}));
+      }
+    };
+    backups.append(li("", div("item-head", info, restore, delBackup)));
   });
-  $("backups-empty").hidden = (s.backups || []).length > 0;
+  $("backups-empty").hidden = backupList.length > 0;
   $("backups-empty").textContent = t("No saved profile backups for this Apple team.");
 
   const canInstall = s.account.present && s.account.password_saved && s.account.team &&
@@ -1296,7 +1368,11 @@ async function pollLogs() {
   } catch (_) {}
   setTimeout(pollLogs, 2000);
 }
-$("btn-logs-copy").onclick = () => navigator.clipboard.writeText($("logs-view").textContent);
+$("btn-logs-copy").onclick = () => {
+  copyText($("logs-view").textContent);
+  $("btn-logs-copy").textContent = t("Copied!");
+  setTimeout(() => { $("btn-logs-copy").textContent = t("Copy"); }, 1800);
+};
 $("btn-logs-clear").onclick = () => { $("logs-view").textContent = ""; };
 
 refresh();
@@ -1308,9 +1384,9 @@ $("btn-bulk-delete").onclick = () => {
   if (!count) return;
   if (confirm(t("Delete ") + count + t(" selected profiles? Verified backups will be saved first."))) {
     const list = Array.from(selectedProfileUuids);
-    act(() => api("/api/profile/remove", { uuids: list }));
     selectedProfileUuids.clear();
-    updateBulkDeleteUI();
+    if (state) render(state);
+    act(() => api("/api/profile/remove", { uuids: list }));
   }
 };
 
@@ -1322,8 +1398,29 @@ if (cbSelectAll) {
       if (checked) selectedProfileUuids.add(p.uuid);
       else selectedProfileUuids.delete(p.uuid);
     });
-    document.querySelectorAll(".profile-check").forEach(cb => { cb.checked = checked; });
-    updateBulkDeleteUI();
+    if (state) render(state);
+  };
+}
+
+const btnSelectExpired = $("btn-select-expired");
+if (btnSelectExpired) {
+  btnSelectExpired.onclick = () => {
+    selectedProfileUuids.clear();
+    (state?.profiles || []).forEach(p => {
+      if (p.days < 0) selectedProfileUuids.add(p.uuid);
+    });
+    if (state) render(state);
+  };
+}
+
+const btnClearBackups = $("btn-clear-backups");
+if (btnClearBackups) {
+  btnClearBackups.onclick = () => {
+    const uuids = (state?.backups || []).map(b => b.uuid);
+    if (!uuids.length) return;
+    if (confirm("Delete all " + uuids.length + " saved profile backups permanently from the server?")) {
+      act(() => api("/api/profile/backup/remove", { uuids }));
+    }
   };
 }
 
@@ -1345,9 +1442,11 @@ $("btn-phone-connect").onclick = () => {
 
 $("qr-close").onclick = () => { $("qr-modal").hidden = true; };
 $("qr-modal").onclick = (e) => { if (e.target === $("qr-modal")) $("qr-modal").hidden = true; };
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("qr-modal").hidden) $("qr-modal").hidden = true;
+});
 $("btn-copy-qr-url").onclick = () => {
-  const val = $("qr-url-input").value;
-  if (navigator.clipboard) navigator.clipboard.writeText(val);
+  copyText($("qr-url-input").value);
   $("btn-copy-qr-url").textContent = t("Copied!");
   setTimeout(() => { $("btn-copy-qr-url").textContent = t("Copy"); }, 2000);
 };

@@ -430,6 +430,7 @@ pub async fn serve(
         .route("/api/discord/test", post(test_discord))
         .route("/api/profile/remove", post(remove_profile))
         .route("/api/profile/restore", post(restore_profile))
+        .route("/api/profile/backup/remove", post(remove_backup))
         .route(
             "/api/install",
             post(install).layer(DefaultBodyLimit::max(MAX_IPA_BYTES + 1024 * 1024)),
@@ -564,14 +565,32 @@ fn host_is_local_or_lan(headers: &HeaderMap) -> bool {
 }
 
 pub fn discover_lan_ip() -> Option<String> {
-    let s = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
-    s.connect("10.255.255.255:1").ok()?;
-    let ip = s.local_addr().ok()?.ip();
-    if !ip.is_loopback() {
-        Some(ip.to_string())
-    } else {
-        None
+    discover_lan_ip_for(None)
+}
+
+pub fn discover_lan_ip_for(phone_hint: Option<&str>) -> Option<String> {
+    let mut probes: Vec<String> = Vec::new();
+    if let Some(h) = phone_hint {
+        let host = h.split(':').next().unwrap_or(h).trim();
+        if !host.is_empty() && host != "127.0.0.1" && host != "localhost" {
+            probes.push(format!("{host}:80"));
+        }
     }
+    probes.push("192.168.1.1:80".to_string());
+    probes.push("10.255.255.255:1".to_string());
+    for target in probes {
+        if let Ok(s) = std::net::UdpSocket::bind("0.0.0.0:0") {
+            if s.connect(&target).is_ok() {
+                if let Ok(addr) = s.local_addr() {
+                    let ip = addr.ip();
+                    if !ip.is_loopback() && !ip.is_unspecified() {
+                        return Some(ip.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 fn basic_password_ok(headers: &HeaderMap, pin: &str) -> bool {
@@ -754,7 +773,7 @@ async fn state(State(app): State<Arc<App>>) -> Json<Value> {
         "history": history,
         "backups": account.as_ref().and_then(|a| a.team_id.as_deref())
             .map(backup_views).unwrap_or_default(),
-        "lan_ip": discover_lan_ip(),
+        "lan_ip": discover_lan_ip_for(g.snapshot.address.as_deref()),
         "app_status": std::fs::read_to_string(APP_STATUS_FILE).ok()
             .and_then(|s| serde_json::from_str::<Value>(&s).ok())
             .unwrap_or(json!({})),
@@ -911,9 +930,57 @@ async fn restore_profile(
         return json_err(StatusCode::CONFLICT, BUSY_MSG);
     };
     app.lock().job = JobView {
-        kind:"restore_profile".into(), running:true, lines:Vec::new(), ok:None
+        kind: "restore_profile".into(),
+        running: true,
+        lines: vec![format!("Connecting to the iPhone to restore profile {}…", req.uuid)],
+        ok: None,
     };
     spawn_job(guard, move |app| run_restore_profile(app, req.uuid, team));
+    json_ok()
+}
+
+#[derive(Deserialize)]
+struct RemoveBackupReq {
+    #[serde(default)]
+    uuid: Option<String>,
+    #[serde(default)]
+    uuids: Vec<String>,
+}
+
+async fn remove_backup(
+    State(app): State<Arc<App>>,
+    Json(req): Json<RemoveBackupReq>,
+) -> (StatusCode, Json<Value>) {
+    if app.busy.load(Ordering::SeqCst) {
+        return json_err(StatusCode::CONFLICT, BUSY_MSG);
+    }
+    let team = apple::read_account(Path::new(".")).and_then(|a| a.team_id);
+    let Some(team) = team else {
+        return json_err(StatusCode::BAD_REQUEST, "Sign in before managing profile backups.");
+    };
+    let mut targets = req.uuids;
+    if targets.is_empty() {
+        if let Some(u) = req.uuid {
+            targets.push(u);
+        }
+    }
+    targets.retain(|u| !u.trim().is_empty());
+    if targets.is_empty() {
+        return json_err(StatusCode::BAD_REQUEST, "No backup specified for removal.");
+    }
+    let existing = backup_views(&team);
+    for u in &targets {
+        if !existing.iter().any(|p| p["uuid"].as_str().is_some_and(|id| id.eq_ignore_ascii_case(u))) {
+            return json_err(StatusCode::NOT_FOUND, "Profile backup was not found.");
+        }
+    }
+    for u in &targets {
+        if u.len() <= 64 && u.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') {
+            let path = Path::new(crate::SAVED_DIR).join(format!("{u}.mobileprovision"));
+            let _ = std::fs::remove_file(&path);
+            crate::log::line(&format!("[backup] Deleted saved profile backup {u}."));
+        }
+    }
     json_ok()
 }
 
@@ -937,8 +1004,15 @@ async fn run_restore_profile(app: Arc<App>, uuid: String, team: String) {
     }.await;
     let ok = result.is_ok();
     match result {
-        Ok(line) => app.push_line(&line),
-        Err(e) => app.push_line(&format!("Error: {}", short_error(&e))),
+        Ok(line) => {
+            crate::log::line(&format!("[profile] {line}"));
+            app.push_line(&line);
+        }
+        Err(e) => {
+            let msg = short_error(&e);
+            crate::log::err(&format!("[profile] Restore failed: {msg}"));
+            app.push_line(&format!("Error: {msg}"));
+        }
     }
     {
         let mut g=app.lock();
@@ -1017,6 +1091,11 @@ async fn remove_profile(
             targets.push(u);
         }
     }
+    let mut seen = std::collections::HashSet::new();
+    targets.retain(|u| {
+        let trimmed = u.trim();
+        !trimmed.is_empty() && seen.insert(trimmed.to_ascii_lowercase())
+    });
     if targets.is_empty() {
         return json_err(StatusCode::BAD_REQUEST, "No profiles specified for removal.");
     }
@@ -1036,7 +1115,7 @@ async fn remove_profile(
         g.job = JobView {
             kind: "remove_profile".into(),
             running: true,
-            lines: Vec::new(),
+            lines: vec![format!("Connecting to the iPhone to back up and remove {} profile(s)…", targets.len())],
             ok: None,
         };
     }
@@ -1577,14 +1656,18 @@ async fn run_remove_profiles(app: Arc<App>, uuids: Vec<String>) {
         let (_, mut link) = phone::connect_auto(app.phone, PAIRING_FILE, |_: &str| {}).await?;
         for (i, uuid) in uuids.iter().enumerate() {
             let p = crate::remove_profile_with_backup(&mut link, uuid, Some(&team)).await?;
-            app.push_line(&format!("[{}/{}] Removed profile for {} [{}]. Backup saved in {}.",
-                i + 1, count, p.bundle_id.as_deref().unwrap_or("?"), p.uuid, crate::SAVED_DIR));
+            let line = format!("[{}/{}] Removed profile for {} [{}]. Backup saved in {}.",
+                i + 1, count, p.bundle_id.as_deref().unwrap_or("?"), p.uuid, crate::SAVED_DIR);
+            crate::log::line(&format!("[profile] {line}"));
+            app.push_line(&line);
         }
         Ok(())
     }.await;
     let ok = result.is_ok();
     if let Err(e) = result {
-        app.push_line(&format!("Error: {}", short_error(&e)));
+        let msg = short_error(&e);
+        crate::log::err(&format!("[profile] Removal failed: {msg}"));
+        app.push_line(&format!("Error: {msg}"));
     }
     {
         let mut g = app.lock();
@@ -2120,7 +2203,7 @@ mod tests {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
             started_tx.send(()).unwrap();
-            rt.block_on(state(State(reader)));
+            let _ = rt.block_on(state(State(reader)));
             let _ = done_tx.send(());
         });
         started_rx.recv_timeout(Duration::from_secs(5)).unwrap();

@@ -196,7 +196,6 @@ pub(crate) async fn install_signed_app_rsd(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Read;
 
     #[test]
     fn packages_signed_app_with_payload_and_nested_files() {
