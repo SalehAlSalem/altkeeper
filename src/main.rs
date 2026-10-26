@@ -633,7 +633,7 @@ async fn run() -> Result<(), String> {
         }
         "serve" => {
             let bind: SocketAddr = opt("--bind")
-                .unwrap_or_else(|| "127.0.0.1:8787".into())
+                .unwrap_or_else(|| "0.0.0.0:8787".into())
                 .parse()
                 .map_err(|e| crate::tr!(format!("--bind non valido (serve ip:porta): {e}"), format!("invalid --bind (expected ip:port): {e}")))?;
             // Meglio la variabile d'ambiente: un PIN sulla riga di comando si vede con `ps`.
@@ -688,7 +688,7 @@ async fn run() -> Result<(), String> {
                 tray::wait_for_exit(pid);
             }
             let exe = std::env::current_exe().map_err(dbg)?;
-            let bind: SocketAddr = "127.0.0.1:8787".parse().map_err(dbg)?;
+            let bind: SocketAddr = "0.0.0.0:8787".parse().map_err(dbg)?;
             let phone = phone_addr(opt("--phone"))?;
             let start = || -> Result<(), String> {
                 apple::anisette_url(env::var("ANISETTE_URL").as_deref())?;

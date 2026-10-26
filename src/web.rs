@@ -484,7 +484,7 @@ async fn guard(State(app): State<Arc<App>>, req: Request, next: Next) -> Respons
     // so only these two fixed, non-sensitive PNGs are served without the PIN.
     let public_icon = req.method() == Method::GET
         && matches!(req.uri().path(), "/apple-touch-icon.png" | "/favicon-32.png");
-    if !public_icon && app.pin.is_none() && !host_is_local(req.headers()) {
+    if !public_icon && app.pin.is_none() && !host_is_local_or_lan(req.headers()) {
         return (StatusCode::FORBIDDEN, "host non ammesso").into_response();
     }
     if !public_icon {
@@ -536,6 +536,42 @@ fn host_is_local(headers: &HeaderMap) -> bool {
         host.split(':').next().unwrap_or("")
     };
     matches!(name, "localhost" | "127.0.0.1" | "::1")
+}
+
+fn host_is_local_or_lan(headers: &HeaderMap) -> bool {
+    if host_is_local(headers) {
+        return true;
+    }
+    let Some(host) = headers.get(header::HOST).and_then(|v| v.to_str().ok()) else {
+        return false;
+    };
+    let name = if let Some(rest) = host.strip_prefix('[') {
+        rest.split(']').next().unwrap_or("")
+    } else {
+        host.split(':').next().unwrap_or("")
+    };
+    if name.ends_with(".local") {
+        return true;
+    }
+    if let Ok(ip) = name.parse::<std::net::IpAddr>() {
+        match ip {
+            std::net::IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
+            std::net::IpAddr::V6(v6) => v6.is_loopback() || (v6.segments()[0] & 0xfe00) == 0xfc00,
+        }
+    } else {
+        false
+    }
+}
+
+pub fn discover_lan_ip() -> Option<String> {
+    let s = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    s.connect("10.255.255.255:1").ok()?;
+    let ip = s.local_addr().ok()?.ip();
+    if !ip.is_loopback() {
+        Some(ip.to_string())
+    } else {
+        None
+    }
 }
 
 fn basic_password_ok(headers: &HeaderMap, pin: &str) -> bool {
@@ -718,6 +754,7 @@ async fn state(State(app): State<Arc<App>>) -> Json<Value> {
         "history": history,
         "backups": account.as_ref().and_then(|a| a.team_id.as_deref())
             .map(backup_views).unwrap_or_default(),
+        "lan_ip": discover_lan_ip(),
         "app_status": std::fs::read_to_string(APP_STATUS_FILE).ok()
             .and_then(|s| serde_json::from_str::<Value>(&s).ok())
             .unwrap_or(json!({})),
@@ -964,15 +1001,32 @@ async fn renew(
 
 #[derive(Deserialize)]
 struct RemoveProfileReq {
-    uuid: String,
+    #[serde(default)]
+    uuid: Option<String>,
+    #[serde(default)]
+    uuids: Vec<String>,
 }
 
 async fn remove_profile(
     State(app): State<Arc<App>>,
     Json(req): Json<RemoveProfileReq>,
 ) -> (StatusCode, Json<Value>) {
-    if !app.lock().snapshot.profiles.iter().any(|p| p.uuid.eq_ignore_ascii_case(&req.uuid)) {
-        return json_err(StatusCode::NOT_FOUND, "Profile is not in your team's current list. Check again.");
+    let mut targets = req.uuids;
+    if targets.is_empty() {
+        if let Some(u) = req.uuid {
+            targets.push(u);
+        }
+    }
+    if targets.is_empty() {
+        return json_err(StatusCode::BAD_REQUEST, "No profiles specified for removal.");
+    }
+    {
+        let profiles = &app.lock().snapshot.profiles;
+        for u in &targets {
+            if !profiles.iter().any(|p| p.uuid.eq_ignore_ascii_case(u)) {
+                return json_err(StatusCode::NOT_FOUND, "Profile is not in your team's current list. Check again.");
+            }
+        }
     }
     let Some(guard) = try_busy(&app) else {
         return json_err(StatusCode::CONFLICT, BUSY_MSG);
@@ -986,7 +1040,7 @@ async fn remove_profile(
             ok: None,
         };
     }
-    spawn_job(guard, move |app| run_remove_profile(app, req.uuid));
+    spawn_job(guard, move |app| run_remove_profiles(app, targets));
     json_ok()
 }
 
@@ -1514,15 +1568,18 @@ fn save_app_renew_status(app: &App, lines: &[String], selected: Option<&str>) {
     }
 }
 
-async fn run_remove_profile(app: Arc<App>, uuid: String) {
+async fn run_remove_profiles(app: Arc<App>, uuids: Vec<String>) {
+    let count = uuids.len();
     let result: Result<(), String> = async {
         let team = apple::read_account(Path::new("."))
             .and_then(|a| a.team_id)
             .ok_or("Sign in to select a team before removing profiles.")?;
         let (_, mut link) = phone::connect_auto(app.phone, PAIRING_FILE, |_: &str| {}).await?;
-        let p = crate::remove_profile_with_backup(&mut link, &uuid, Some(&team)).await?;
-        app.push_line(&format!("Removed profile for {} [{}]. Backup saved in {}.",
-            p.bundle_id.as_deref().unwrap_or("?"), p.uuid, crate::SAVED_DIR));
+        for (i, uuid) in uuids.iter().enumerate() {
+            let p = crate::remove_profile_with_backup(&mut link, uuid, Some(&team)).await?;
+            app.push_line(&format!("[{}/{}] Removed profile for {} [{}]. Backup saved in {}.",
+                i + 1, count, p.bundle_id.as_deref().unwrap_or("?"), p.uuid, crate::SAVED_DIR));
+        }
         Ok(())
     }.await;
     let ok = result.is_ok();

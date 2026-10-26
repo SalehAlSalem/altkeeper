@@ -354,7 +354,12 @@ fn watch_log() {
 
 /// GET minimale verso la pagina locale; `None` se non risponde.
 fn http_get(addr: SocketAddr, path: &str) -> Option<String> {
-    let mut s = TcpStream::connect_timeout(&addr, Duration::from_secs(5)).ok()?;
+    let query_addr = if addr.ip().is_unspecified() {
+        SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), addr.port())
+    } else {
+        addr
+    };
+    let mut s = TcpStream::connect_timeout(&query_addr, Duration::from_secs(5)).ok()?;
     s.set_read_timeout(Some(Duration::from_secs(60))).ok()?;
     write!(s, "GET {path} HTTP/1.0\r\nHost: {addr}\r\n\r\n").ok()?;
     let mut body = String::new();
@@ -478,7 +483,12 @@ fn build_tray(menu: &Menu) -> TrayIcon {
 /// Avvia il ciclo degli eventi con l'icona; `start` riceve il proxy per segnalare errori del
 /// server. Non ritorna: "Quit" chiude il processo. Su macOS va chiamata dal thread principale.
 pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserEvent>)) -> ! {
-    let url = format!("http://{bind}/");
+    let client_addr = if bind.ip().is_unspecified() {
+        SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), bind.port())
+    } else {
+        bind
+    };
+    let url = format!("http://{client_addr}/");
     let mut builder = EventLoopBuilder::<UserEvent>::with_user_event();
     // Il ciclo degli eventi gira sul thread `altkeeper-main` (main() sposta tutto lì per avere uno
     // stack più grande), e tao su Windows rifiuta di crearlo fuori dal main thread se non lo si
