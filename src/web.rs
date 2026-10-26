@@ -390,7 +390,7 @@ async fn auto_renew_loop(app: Arc<App>) {
 /// compreso), così una configurazione sbagliata non lascia annunci Bonjour orfani.
 pub fn check_options(bind: SocketAddr, pin: &Option<String>) -> Result<(), String> {
     match pin {
-        None if !bind.ip().is_loopback() => Err(crate::tr!(
+        None if !bind.ip().is_loopback() && !bind.ip().is_unspecified() => Err(crate::tr!(
             "per ascoltare fuori da questo computer serve un PIN: imposta ALTKEEPER_WEB_PIN (o usa --pin)",
             "listening outside this computer requires a PIN: set ALTKEEPER_WEB_PIN (or use --pin)"
         )
