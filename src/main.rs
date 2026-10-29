@@ -961,6 +961,18 @@ async fn run() -> Result<(), String> {
             let exe = std::env::current_exe().map_err(dbg)?;
             let bind: SocketAddr = "0.0.0.0:8787".parse().map_err(dbg)?;
             let phone = phone_addr(opt("--phone"))?;
+
+            // If another instance of AltKeeper is already running in the background/tray,
+            // don't fail with a socket port collision: activate its window or open dashboard.
+            if replacing.is_none() {
+                if let Some(_) = tray::http_get("127.0.0.1:8787".parse().unwrap(), "/api/state") {
+                    if !tray::activate_existing_instance() {
+                        tray::open_in_browser("http://127.0.0.1:8787/");
+                    }
+                    return Ok(());
+                }
+            }
+
             let start = || -> Result<(), String> {
                 apple::anisette_choice(Path::new("."))?;
                 altserver::set_profile_dir(dir.clone());
@@ -969,6 +981,13 @@ async fn run() -> Result<(), String> {
             };
             if let Err(e) = start() {
                 log::err(&e);
+                #[cfg(windows)]
+                if replacing.is_none() && e.contains("10048") {
+                    if !tray::activate_existing_instance() {
+                        tray::open_in_browser("http://127.0.0.1:8787/");
+                    }
+                    return Ok(());
+                }
                 // La versione nuova non parte: si rimette quella vecchia e si riavvia quella.
                 if replacing.is_some() && update::rollback(&exe) {
                     log::err("[update] the new version did not start, going back to the old one");

@@ -378,8 +378,40 @@ fn toast(text: &str) {
 
 /// Apre un indirizzo nel browser predefinito.
 #[cfg(target_os = "macos")]
-fn open_in_browser(url: &str) {
+pub fn open_in_browser(url: &str) {
     let _ = std::process::Command::new("open").arg(url).spawn();
+}
+
+#[cfg(windows)]
+pub fn open_in_browser(url: &str) {
+    let _ = std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn();
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+pub fn open_in_browser(_url: &str) {}
+
+#[cfg(windows)]
+pub fn activate_existing_instance() -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        FindWindowW, SetForegroundWindow, ShowWindow, SW_RESTORE, SW_SHOW,
+    };
+    let wide = |s: &str| s.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+    let title = wide("AltKeeper");
+    unsafe {
+        let hwnd = FindWindowW(std::ptr::null(), title.as_ptr());
+        if !hwnd.is_null() {
+            ShowWindow(hwnd, SW_SHOW);
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+            return true;
+        }
+    }
+    false
+}
+
+#[cfg(not(windows))]
+pub fn activate_existing_instance() -> bool {
+    false
 }
 
 /// Guarda le righe di log nuove e mostra gli avvisi.
@@ -402,7 +434,7 @@ fn watch_log() {
 }
 
 /// GET minimale verso la pagina locale; `None` se non risponde.
-fn http_get(addr: SocketAddr, path: &str) -> Option<String> {
+pub fn http_get(addr: SocketAddr, path: &str) -> Option<String> {
     let query_addr = if addr.ip().is_unspecified() {
         SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), addr.port())
     } else {
