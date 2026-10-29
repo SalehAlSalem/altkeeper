@@ -211,7 +211,6 @@ pub(crate) async fn install_signed_app_rsd(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Read;
 
     #[test]
     fn recognizes_thin_and_fat_macho_magic_values() {

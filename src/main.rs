@@ -850,7 +850,7 @@ async fn run() -> Result<(), String> {
         }
         "serve" => {
             let bind: SocketAddr = opt("--bind")
-                .unwrap_or_else(|| "127.0.0.1:8787".into())
+                .unwrap_or_else(|| "0.0.0.0:8787".into())
                 .parse()
                 .map_err(|e| {
                     crate::tr!(
@@ -959,7 +959,7 @@ async fn run() -> Result<(), String> {
                 tray::wait_for_exit(pid);
             }
             let exe = std::env::current_exe().map_err(dbg)?;
-            let bind: SocketAddr = "127.0.0.1:8787".parse().map_err(dbg)?;
+            let bind: SocketAddr = "0.0.0.0:8787".parse().map_err(dbg)?;
             let phone = phone_addr(opt("--phone"))?;
             let start = || -> Result<(), String> {
                 apple::anisette_choice(Path::new("."))?;

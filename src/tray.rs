@@ -403,9 +403,14 @@ fn watch_log() {
 
 /// GET minimale verso la pagina locale; `None` se non risponde.
 fn http_get(addr: SocketAddr, path: &str) -> Option<String> {
-    let mut s = TcpStream::connect_timeout(&addr, Duration::from_secs(5)).ok()?;
+    let query_addr = if addr.ip().is_unspecified() {
+        SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), addr.port())
+    } else {
+        addr
+    };
+    let mut s = TcpStream::connect_timeout(&query_addr, Duration::from_secs(5)).ok()?;
     s.set_read_timeout(Some(Duration::from_secs(60))).ok()?;
-    write!(s, "GET {path} HTTP/1.0\r\nHost: {addr}\r\n\r\n").ok()?;
+    write!(s, "GET {path} HTTP/1.0\r\nHost: {query_addr}\r\n\r\n").ok()?;
     let mut body = String::new();
     s.read_to_string(&mut body).ok()?;
     body.split_once("\r\n\r\n").map(|(_, b)| b.to_string())
@@ -450,14 +455,15 @@ fn show(
     }
     let window = match WindowBuilder::new()
         .with_title("AltKeeper")
-        .with_inner_size(tao::dpi::LogicalSize::new(560.0, 860.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(1040.0, 840.0))
+        .with_min_inner_size(tao::dpi::LogicalSize::new(420.0, 560.0))
         .with_window_icon(tao::window::Icon::from_rgba(LOGO_64.to_vec(), 64, 64).ok())
         .build(target)
     {
         Ok(w) => w,
         Err(e) => return crate::log::err(&format!("[tray] cannot open the window: {e}")),
     };
-    match WebViewBuilder::new().with_url(url).build(&window) {
+    match WebViewBuilder::new().with_url(url).with_hotkeys_zoom(false).build(&window) {
         Ok(webview) => {
             // Su macOS l'app non ha un'icona nel Dock: la finestra va portata davanti a mano.
             window.set_focus();
@@ -535,7 +541,12 @@ fn build_tray(menu: &Menu) -> TrayIcon {
 /// Avvia il ciclo degli eventi con l'icona; `start` riceve il proxy per segnalare errori del
 /// server. Non ritorna: "Quit" chiude il processo. Su macOS va chiamata dal thread principale.
 pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserEvent>)) -> ! {
-    let url = format!("http://{bind}/");
+    let client_addr = if bind.ip().is_unspecified() {
+        SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), bind.port())
+    } else {
+        bind
+    };
+    let url = format!("http://{client_addr}/");
     let mut builder = EventLoopBuilder::<UserEvent>::with_user_event();
     // Il ciclo degli eventi gira sul thread `altkeeper-main` (main() sposta tutto lì per avere uno
     // stack più grande), e tao su Windows rifiuta di crearlo fuori dal main thread se non lo si
@@ -644,11 +655,19 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
                 #[cfg(target_os = "macos")]
                 app_menu.init_for_nsapp();
                 tray = Some(build_tray(&menu));
+                show(&mut slot, target, &url);
             }
-            Event::UserEvent(UserEvent::Tray(TrayIconEvent::DoubleClick {
-                button: MouseButton::Left,
-                ..
-            })) => show(&mut slot, target, &url),
+            Event::UserEvent(UserEvent::Tray(
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: tray_icon::MouseButtonState::Up,
+                    ..
+                }
+                | TrayIconEvent::DoubleClick {
+                    button: MouseButton::Left,
+                    ..
+                },
+            )) => show(&mut slot, target, &url),
             Event::UserEvent(UserEvent::Menu(e)) => {
                 if e.id == open.id() {
                     show(&mut slot, target, &url);
