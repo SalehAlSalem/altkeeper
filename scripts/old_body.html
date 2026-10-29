@@ -1,0 +1,239 @@
+<div class="dashboard-grid">
+    <div class="col-main">
+      <section class="card" aria-live="polite">
+        <h2 data-i18n="iPhone">iPhone</h2>
+        <div class="row">
+          <span class="pill" id="phone-pill" data-i18n="Checking…">Checking…</span>
+          <span class="muted grow" id="phone-addr"></span>
+          <button id="btn-check" type="button" data-i18n="Check again">Check again</button>
+        </div>
+        <div class="banner bad" id="phone-error" hidden></div>
+      </section>
+
+      <section class="card">
+        <div class="apps-toolbar">
+          <h2 data-i18n="Your apps" style="margin:0">Your apps</h2>
+          <div class="apps-toolbar-right">
+            <div class="quotas-row" id="quotas-row" hidden>
+              <span class="quota-badge" id="quota-apps"></span>
+              <span class="quota-badge" id="quota-appids"></span>
+            </div>
+            <div class="view-switcher" id="apps-view-switcher" role="group" aria-label="View mode">
+              <button type="button" class="view-btn" data-view="list" title="Detailed List View">☰ List</button>
+              <button type="button" class="view-btn" data-view="grid" title="Grid Cards View">⊞ Grid</button>
+              <button type="button" class="view-btn" data-view="compact" title="Compact View">≡ Compact</button>
+            </div>
+          </div>
+        </div>
+        <p class="muted" id="apps-empty" hidden></p>
+        <ul class="plain" id="apps"></ul>
+        <div class="row action-row" style="margin-top:14px">
+          <button class="primary" id="btn-due" type="button" data-i18n="Renew expiring apps">Renew expiring apps</button>
+          <button id="btn-all" type="button" data-i18n="Renew all now">Renew all now</button>
+          <button id="btn-preview" type="button" data-i18n="Preview renewals">Preview renewals</button>
+        </div>
+        <p class="muted" id="renew-hint" style="margin:8px 0 0"></p>
+        <div class="nested" id="renew-preview" hidden></div>
+        <div id="app-job-slot">
+          <div id="job" hidden>
+            <div class="banner" id="job-status"></div>
+            <pre class="log" id="job-log"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="profiles-card">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <h2 data-i18n="Provisioning profiles on iPhone" style="margin:0">Provisioning profiles on iPhone</h2>
+          <button id="btn-bulk-delete" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" disabled>
+            <span data-i18n="Delete Selected">Delete Selected</span> (<span id="bulk-delete-count">0</span>)
+          </button>
+        </div>
+        <p class="muted" data-i18n="Old profiles may remain after renewal. Deleting a profile still needed by an installed app can stop it opening. A verified server-side backup is saved before removal.">Old profiles may remain after renewal. Deleting a profile still needed by an installed app can stop it opening. A verified server-side backup is saved before removal.</p>
+        <div id="bulk-select-bar" class="bulk-bar" hidden>
+          <label class="check" style="margin:0; font-weight:600; cursor:pointer; align-items:center;">
+            <input type="checkbox" id="cb-select-all-profiles" class="profile-check"> <span data-i18n="Select all profiles">Select all profiles</span>
+          </label>
+          <button type="button" id="btn-select-expired" class="mini" style="width:auto; padding:4px 10px; min-height:30px; font-size:.78rem;" data-i18n="Select expired">Select expired</button>
+        </div>
+        <p class="muted" id="profiles-empty" hidden></p>
+        <ul class="plain" id="profiles"></ul>
+      </section>
+
+      <section class="card">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <h2 data-i18n="Saved profile backups" style="margin:0">Saved profile backups</h2>
+          <button id="btn-clear-backups" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" hidden data-i18n="Delete all backups">Delete all backups</button>
+        </div>
+        <p class="muted" data-i18n="Restore a backed-up profile by UUID. Restoring does not extend its original expiry date. The backup is retained.">Restore a backed-up profile by UUID. Restoring does not extend its original expiry date. The backup is retained.</p>
+        <p class="muted" id="backups-empty"></p>
+        <ul class="plain" id="backups"></ul>
+      </section>
+    </div>
+
+    <div class="col-side">
+      <section class="card">
+        <h2 data-i18n="Install an app from this PC">Install an app from this PC</h2>
+        <p class="muted" data-i18n="Choose an IPA. AltKeeper signs it with the configured Apple ID and installs it over Wi-Fi. The Apple ID password must be saved on the server.">Choose an IPA. AltKeeper signs it with the configured Apple ID and installs it over Wi-Fi. The Apple ID password must be saved on the server.</p>
+        <form id="install-form">
+          <label for="ipa-file" data-i18n="IPA file">IPA file</label>
+          <input id="ipa-file" type="file" accept=".ipa,application/octet-stream">
+          <label for="install-display-name" data-i18n="New app name (optional)">New app name (optional)</label>
+          <input id="install-display-name" type="text" maxlength="40" autocomplete="off"
+            placeholder="e.g. YouTube Clone">
+          <label for="install-bundle-id" data-i18n="New Bundle ID (optional)">New Bundle ID (optional)</label>
+          <input id="install-bundle-id" type="text" maxlength="160" autocapitalize="off" spellcheck="false"
+            autocomplete="off" placeholder="e.g. com.example.youtubeclone">
+          <p class="muted" data-i18n="These settings are for new installations only. Existing apps and automatic renewal are never modified. A new Bundle ID allows a separate copy; the Apple team suffix is added automatically.">These settings are for new installations only. Existing apps and automatic renewal are never modified. A new Bundle ID allows a separate copy; the Apple team suffix is added automatically.</p>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" id="btn-install" type="submit" data-i18n="Sign and install">Sign and install</button>
+            <span class="muted" id="install-hint"></span>
+          </div>
+        </form>
+        <div class="nested" id="extension-choice" hidden>
+          <h3 data-i18n="Confirm new installation">Confirm new installation</h3>
+          <p class="muted" id="install-original" aria-live="polite"></p>
+          <div id="extension-options">
+            <p class="muted" data-i18n="Unchecked extensions are removed before signing. Some apps require extensions to function. All are selected by default.">Unchecked extensions are removed before signing. Some apps require extensions to function. All are selected by default.</p>
+            <div id="extension-list"></div>
+            <p class="muted" id="extension-summary" aria-live="polite"></p>
+            <p class="muted" data-i18n="App ID count is an upper bound; already-registered IDs may be reused. Live Apple quota is not checked here.">App ID count is an upper bound; already-registered IDs may be reused. Live Apple quota is not checked here.</p>
+          </div>
+          <div class="row action-row" style="margin-top:12px">
+            <button type="button" id="ext-all" data-i18n="Select all">Select all</button>
+            <button type="button" id="ext-none" data-i18n="Select none">Select none</button>
+            <button type="button" class="primary" id="ext-confirm" data-i18n="Sign and install selected">Sign and install selected</button>
+          </div>
+        </div>
+        <div class="banner bad" id="install-error" hidden></div>
+        <div id="install-job-slot"></div>
+      </section>
+
+      <section class="card">
+        <h2>Apple ID</h2>
+        <div id="account-info" hidden>
+          <div class="row">
+            <span class="grow"><strong id="acc-id"></strong><br><span class="muted" id="acc-pw"></span></span>
+            <button id="btn-change" type="button" data-i18n="Change account">Change account</button>
+          </div>
+        </div>
+        <form id="login-form" autocomplete="off" hidden>
+          <label for="apple-id" data-i18n="Apple ID (email)">Apple ID (email)</label>
+          <input id="apple-id" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+          <label for="apple-pw" data-i18n="Password">Password</label>
+          <input id="apple-pw" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+          <label class="check"><input type="checkbox" id="show-pw"> <span data-i18n="Show password">Show password</span></label>
+          <label class="check"><input type="checkbox" id="save-pw" checked>
+            <span><span data-i18n="Save the password on this server for automatic renewals">Save the password on this server for automatic renewals</span>
+            <span class="muted" data-i18n="It is stored as plain text in a private server file.">It is stored as plain text in a private server file.</span></span></label>
+          <button class="primary" id="btn-login" type="submit" data-i18n="Sign in">Sign in</button>
+          <p class="muted" data-i18n="Try only once at a time: repeated failures may cause Apple to block sign-ins temporarily.">Try only once at a time: repeated failures may cause Apple to block sign-ins temporarily.</p>
+        </form>
+        <form id="code-form" autocomplete="off" hidden>
+          <div class="banner good">Apple sent a 6-digit code to your devices.</div>
+          <div class="banner bad" id="code-error" hidden></div>
+          <label for="code" data-i18n="Code">Code</label>
+          <input id="code" class="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">
+          <div class="row" style="margin-top:10px">
+            <button class="primary" id="btn-code" type="submit" data-i18n="Submit code">Submit code</button>
+            <button id="btn-resend" type="button" data-i18n="Resend code">Resend code</button>
+          </div>
+        </form>
+        <div class="banner" id="login-msg" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="Automatic renewal">Automatic renewal</h2>
+        <p class="muted" data-i18n="Runs once daily while this server is online. Renews expiring installed apps. If installed-app lookup fails, it falls back to all saved-team profiles. Default is OFF.">Runs once daily while this server is online. Renews expiring installed apps. If installed-app lookup fails, it falls back to all saved-team profiles. Default is OFF.</p>
+        <div class="row">
+          <span class="pill" id="auto-pill" data-i18n="OFF">OFF</span>
+          <span class="muted grow" id="auto-next" data-i18n="Automatic renewal disabled">Automatic renewal disabled</span>
+        </div>
+        <div class="row">
+          <div>
+            <label for="auto-time" data-i18n="Daily time (UTC)">Daily time (UTC)</label>
+            <input type="time" id="auto-time" value="06:00" style="max-width:150px">
+          </div>
+          <div>
+            <label for="auto-days" data-i18n="Renew when days remaining">Renew when days remaining</label>
+            <select id="auto-days">
+              <option value="1" data-i18n="1 day">1 day</option><option value="2" data-i18n="2 days">2 days</option>
+              <option value="3" selected data-i18n="3 days">3 days</option><option value="4" data-i18n="4 days">4 days</option>
+              <option value="5" data-i18n="5 days">5 days</option><option value="6" data-i18n="6 days">6 days</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted" data-i18n="If a scheduled renewal fails: retry after 30 minutes, up to twice more. Send Discord notification only after the final failure (or an unretryable authentication error).">If a scheduled renewal fails: retry after 30 minutes, up to twice more. Send Discord notification only after the final failure (or an unretryable authentication error).</p>
+        <div class="row action-row" style="margin-top:10px">
+          <button class="primary" id="auto-enable" type="button" data-i18n="Enable auto-renew">Enable auto-renew</button>
+          <button id="auto-disable" type="button" hidden data-i18n="Turn off">Turn off</button>
+        </div>
+        <div class="banner bad" id="auto-error" hidden></div>
+        <div class="divider"></div>
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label for="discord-webhook" style="margin:0" data-i18n="Discord failure notifications">Discord failure notifications</label>
+          <button type="button" id="btn-discord-guide" class="help-btn" title="How to create a Discord Webhook">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span data-i18n="How to connect?">How to connect?</span>
+          </button>
+        </div>
+        <div class="row">
+          <span class="pill" id="discord-pill" data-i18n="Not configured">Not configured</span>
+          <span class="muted" data-i18n="Only sent when automatic renewal fails after retries.">Only sent when automatic renewal fails after retries.</span>
+        </div>
+        <input type="password" id="discord-webhook" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
+        <div class="row action-row" style="margin-top:10px">
+          <button id="discord-save" type="button" data-i18n="Save webhook">Save webhook</button>
+          <button id="discord-clear" type="button" data-i18n="Clear webhook">Clear webhook</button>
+          <button id="discord-test" type="button" data-i18n="Send test notification">Send test notification</button>
+        </div>
+        <div class="banner bad" id="discord-error" hidden></div>
+        <div class="banner" id="discord-test-result" role="status" aria-live="polite" hidden></div>
+        <div class="divider"></div>
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label for="telegram-token" style="margin:0" data-i18n="Telegram Bot notifications">Telegram Bot notifications</label>
+          <button type="button" id="btn-tg-guide" class="help-btn" title="How to get Telegram Bot Token and Chat ID">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span data-i18n="How to connect?">How to connect?</span>
+          </button>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <span class="pill" id="telegram-pill" data-i18n="Not configured">Not configured</span>
+          <span class="muted" id="telegram-chat-label" data-i18n="Alerts you on Telegram if automatic renewal fails.">Alerts you on Telegram if automatic renewal fails.</span>
+        </div>
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <div style="flex: 1.4 1 180px; min-width:0;">
+            <input type="password" id="telegram-token" placeholder="Bot Token (123456:AAF...)" autocomplete="off">
+          </div>
+          <div style="flex: 1 1 130px; min-width:0;">
+            <input type="text" id="telegram-chat-id" placeholder="Chat ID (e.g. 987654321)" autocomplete="off">
+          </div>
+        </div>
+        <div class="row action-row" style="margin-top:10px">
+          <button id="telegram-save" type="button" data-i18n="Save bot">Save bot</button>
+          <button id="telegram-clear" type="button" data-i18n="Clear bot">Clear bot</button>
+          <button id="telegram-test" type="button" data-i18n="Send test">Send test</button>
+        </div>
+        <div class="banner bad" id="telegram-error" hidden></div>
+        <div class="banner" id="telegram-test-result" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="card hist">
+        <h2 data-i18n="Recent renewals">Recent renewals</h2>
+        <p class="muted" id="hist-empty" data-i18n="Nothing yet. Automatic renewal runs every evening when configured on the server.">Nothing yet. Automatic renewal runs every evening when configured on the server.</p>
+        <ul class="plain" id="hist"></ul>
+      </section>
+    </div>
+
+    <section class="card" id="logs">
+      <h2 data-i18n="Logs">Logs</h2>
+      <div class="row">
+        <span class="muted grow" data-i18n="Live server log, newest at the bottom.">Live server log, newest at the bottom.</span>
+        <button id="btn-logs-copy" type="button" data-i18n="Copy">Copy</button>
+        <button id="btn-logs-clear" type="button" data-i18n="Clear view">Clear view</button>
+      </div>
+      <pre class="log logs" id="logs-view"></pre>
+    </section>
+  </div>
+
+  <footer data-i18n="For use on your home network only.">For use on your home network only.</footer>
