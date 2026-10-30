@@ -3078,6 +3078,34 @@ fn short_error(err: &str) -> String {
             .take(1200)
             .collect();
     }
+    if let Some(detail) = trimmed
+        .strip_prefix("login Apple ID non riuscito:")
+        .or_else(|| trimmed.strip_prefix("Apple ID sign-in failed:"))
+    {
+        let e = err.to_lowercase();
+        if e.contains("-20101") || e.contains("entered incorrectly") {
+            return "Incorrect Apple ID or password.".into();
+        }
+        if e.contains("429") || e.contains("too many requests") {
+            return "Apple is rate-limiting requests. Wait a while, then try once.".into();
+        }
+        if e.contains("aborted") || e.contains("abort") {
+            return "Sign-in canceled: the code did not arrive in time.".into();
+        }
+        if let Some(last_bullet) = err
+            .lines()
+            .filter(|l| l.contains('●'))
+            .last()
+            .map(|l| l.trim().trim_start_matches('●').trim())
+            .filter(|l| !l.is_empty())
+        {
+            return format!("Apple ID sign-in failed: {last_bullet}");
+        }
+        let clean = detail.split_whitespace().collect::<Vec<_>>().join(" ");
+        if !clean.is_empty() {
+            return format!("Apple ID sign-in failed: {clean}");
+        }
+    }
     let one_line = err
         .lines()
         .map(str::trim)

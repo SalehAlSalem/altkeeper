@@ -887,6 +887,39 @@
     <div class="banner bad" id="device-error" hidden></div>
   </form>
 
+  <!-- Dedicated Global Apple 2FA Modal -->
+  <div id="tfa-modal" class="modal-overlay" hidden>
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-hero" style="background: linear-gradient(135deg, #015864 0%, #017482 52%, #189894 100%);">
+        <div>
+          <div class="concept-meta">
+            <span class="concept-tag" style="background: rgba(255,255,255,0.22); color: #fff;">AUTHENTICATION</span>
+          </div>
+          <h3 style="margin: 4px 0 0; display:flex; align-items:center; gap:8px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span data-i18n="Two-Factor Authentication">Apple Two-Factor Authentication</span>
+          </h3>
+          <p style="margin: 4px 0 0; font-size: 0.83rem;" data-i18n="Apple sent a 6-digit code to your trusted iPhone or iPad.">Apple sent a 6-digit code to your trusted iPhone or iPad.</p>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 22px;">
+        <form id="tfa-modal-form" autocomplete="off">
+          <div class="banner bad" id="tfa-modal-error" hidden style="margin-bottom: 14px;"></div>
+          <div style="text-align: center; margin-bottom: 16px;">
+            <label for="tfa-modal-code" style="display:block; font-size: 0.88rem; font-weight: 650; margin-bottom: 10px; color: var(--text);" data-i18n="Enter 6-digit Verification Code">
+              Enter 6-digit Verification Code
+            </label>
+            <input id="tfa-modal-code" class="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="------" style="font-size: 2.1rem; letter-spacing: 0.35em; text-align: center; height: 56px; max-width: 260px; margin: 0 auto; display: block; font-weight: 700; border: 2px solid var(--accent); border-radius: 12px; background: var(--surface); color: var(--text);">
+          </div>
+          <div class="row" style="gap: 10px; margin-top: 18px; display: flex;">
+            <button class="primary" id="btn-tfa-modal-submit" type="submit" style="flex: 2; height: 44px; font-size: 0.95rem; font-weight: 700;" data-i18n="Submit Code">Submit Code</button>
+            <button type="button" id="btn-tfa-modal-resend" style="flex: 1; height: 44px;" data-i18n="Resend">Resend</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div id="qr-modal" class="modal-overlay" hidden>
     <div class="modal-box">
       <div class="modal-hero">
@@ -2030,6 +2063,24 @@ function render(s) {
   $("btn-login").textContent = working ? t("Signing in…") : t("Sign in");
   show("code-form", needs);
   banner("code-error", needs ? s.login.code_error : "", "bad");
+
+  const tfaModal = tfa-modal;
+  if (tfaModal) {
+    if (needs) {
+      if (tfaModal.hidden) {
+        tfaModal.hidden = false;
+        setTimeout(() => {
+          const input = tfa-modal-code;
+          if (input) { input.focus(); input.select(); }
+        }, 120);
+      }
+      banner("tfa-modal-error", s.login.code_error || "", "bad");
+    } else {
+      tfaModal.hidden = true;
+      const input = tfa-modal-code;
+      if (input && input.value) input.value = "";
+    }
+  }
   banner("login-msg", phase === "done" || phase === "failed" ? s.login.message : "",
          phase === "done" ? "good" : "bad");
   if (phase === "done" && showForm) showForm = false;

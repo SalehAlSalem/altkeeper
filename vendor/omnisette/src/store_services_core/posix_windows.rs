@@ -138,10 +138,6 @@ pub unsafe fn lstat(path: *const libc::c_char, buf: *mut StatLinux) -> libc::c_i
 
 impl ToWindows<StatLinux> for libc::stat {
     unsafe fn to_windows(&self) -> StatLinux {
-        let atime = PosixTimespec::from_windows_time(self.st_atime as u64);
-        let mtime = PosixTimespec::from_windows_time(self.st_mtime as u64);
-        let ctime = PosixTimespec::from_windows_time(self.st_ctime as u64);
-
         let mut mode = 0o555;
         let win_mode = self.st_mode;
 
@@ -165,11 +161,11 @@ impl ToWindows<StatLinux> for libc::stat {
             st_size: self.st_size as _,
             st_blksize: 0,
             st_blocks: 0,
-            st_atime: atime.tv_sec,
+            st_atime: self.st_atime as i64,
             st_atime_nsec: 0,
-            st_mtime: mtime.tv_sec,
+            st_mtime: self.st_mtime as i64,
             st_mtime_nsec: 0,
-            st_ctime: ctime.tv_sec,
+            st_ctime: self.st_ctime as i64,
             st_ctime_nsec: 0,
             __unused: [0, 0, 0],
         }
