@@ -162,6 +162,39 @@ fn run_key() -> io::Result<RegKey> {
 }
 
 #[cfg(windows)]
+
+#[cfg(windows)]
+pub fn is_autostart_enabled() -> bool {
+    autostart_enabled_as(RUN_VALUE)
+}
+
+#[cfg(windows)]
+pub fn toggle_autostart(on: bool, dir: &Path) -> io::Result<()> {
+    let exe = std::env::current_exe()?;
+    set_autostart_as(RUN_VALUE, on, &exe, dir)
+}
+
+#[cfg(target_os = "macos")]
+pub fn is_autostart_enabled() -> bool {
+    autostart_enabled_as(RUN_VALUE)
+}
+
+#[cfg(target_os = "macos")]
+pub fn toggle_autostart(on: bool, dir: &Path) -> io::Result<()> {
+    let exe = std::env::current_exe()?;
+    set_autostart_as(RUN_VALUE, on, &exe, dir)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn is_autostart_enabled() -> bool {
+    false
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn toggle_autostart(_on: bool, _dir: &Path) -> io::Result<()> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "Not supported on this platform"))
+}
+
 pub fn autostart_command(exe: &Path, dir: &Path) -> String {
     format!("\"{}\" tray --dir \"{}\"", exe.display(), dir.display())
 }
@@ -485,12 +518,31 @@ fn show(
         window.set_focus();
         return;
     }
-    let window = match WindowBuilder::new()
+    let target_width = 1040.0;
+    let target_height = 840.0;
+    let mut builder = WindowBuilder::new()
         .with_title("AltKeeper")
-        .with_inner_size(tao::dpi::LogicalSize::new(1040.0, 840.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(target_width, target_height))
         .with_min_inner_size(tao::dpi::LogicalSize::new(420.0, 560.0))
-        .with_window_icon(tao::window::Icon::from_rgba(LOGO_64.to_vec(), 64, 64).ok())
-        .build(target)
+        .with_window_icon(tao::window::Icon::from_rgba(LOGO_64.to_vec(), 64, 64).ok());
+
+    if let Some(monitor) = target.primary_monitor() {
+        let screen_size = monitor.size();
+        let screen_pos = monitor.position();
+        let scale = monitor.scale_factor();
+        let win_width_px = (target_width * scale) as i32;
+        let win_height_px = (target_height * scale) as i32;
+
+        let center_x = screen_pos.x + ((screen_size.width as i32 - win_width_px) / 2).max(0);
+        let center_y = screen_pos.y + ((screen_size.height as i32 - win_height_px) / 2).max(0);
+        // Ensure safety margin from the top to prevent appearing under top-docked taskbars
+        let min_y = screen_pos.y + (65.0 * scale) as i32;
+        let safe_y = center_y.max(min_y);
+
+        builder = builder.with_position(tao::dpi::PhysicalPosition::new(center_x, safe_y));
+    }
+
+    let window = match builder.build(target)
     {
         Ok(w) => w,
         Err(e) => return crate::log::err(&format!("[tray] cannot open the window: {e}")),
@@ -572,7 +624,7 @@ fn build_tray(menu: &Menu) -> TrayIcon {
 
 /// Avvia il ciclo degli eventi con l'icona; `start` riceve il proxy per segnalare errori del
 /// server. Non ritorna: "Quit" chiude il processo. Su macOS va chiamata dal thread principale.
-pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserEvent>)) -> ! {
+pub fn run(bind: SocketAddr, dir: &Path, minimized: bool, start: impl FnOnce(EventLoopProxy<UserEvent>)) -> ! {
     let client_addr = if bind.ip().is_unspecified() {
         SocketAddr::new(std::net::Ipv4Addr::LOCALHOST.into(), bind.port())
     } else {
@@ -693,7 +745,9 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
                 #[cfg(target_os = "macos")]
                 app_menu.init_for_nsapp();
                 tray = Some(build_tray(&menu));
-                show(&mut slot, target, &url);
+                if !minimized {
+                    show(&mut slot, target, &url);
+                }
             }
             Event::UserEvent(UserEvent::Tray(
                 TrayIconEvent::Click {

@@ -721,6 +721,7 @@ fn profile_router(app: Arc<App>) -> Router {
         .route("/api/jit/enable", post(enable_jit))
         .route("/api/phone-addresses", post(update_phone_addresses))
         .route("/api/auto-pair", post(update_auto_pair))
+        .route("/api/autostart", post(update_autostart))
         .route("/api/renew", post(renew))
         .route("/api/renew/cancel-wait", post(cancel_renew_wait))
         .route("/api/pair-usb", post(pair_usb))
@@ -1130,6 +1131,10 @@ async fn state(State(app): State<Arc<App>>) -> Json<Value> {
         "busy": app.busy.load(Ordering::SeqCst) || ANY_PROFILE_BUSY.load(Ordering::SeqCst),
         "pairing": pairing,
         "device": { "id": app.device_id, "name": app.device_name },
+        "autostart": {
+            "supported": cfg!(any(windows, target_os = "macos")),
+            "enabled": crate::tray::is_autostart_enabled(),
+        },
         "auto_pair": {
             "enabled": app.device_id == "default" && phone::auto_pair_configured_in(&app.dir),
             "locked": app.device_id != "default"
@@ -4029,4 +4034,28 @@ esito: 0
         assert!(parse_history("", 5).is_empty());
         assert!(parse_history("righe senza intestazione\n", 5).is_empty());
     }
+}
+
+
+#[derive(Deserialize)]
+struct AutostartUpdate {
+    enabled: bool,
+}
+
+async fn update_autostart(
+    State(app): State<Arc<App>>,
+    Json(payload): Json<AutostartUpdate>,
+) -> Response {
+    if let Err(e) = crate::tray::toggle_autostart(payload.enabled, &app.dir) {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response();
+    }
+    Json(json!({
+        "supported": cfg!(any(windows, target_os = "macos")),
+        "enabled": crate::tray::is_autostart_enabled(),
+    }))
+    .into_response()
 }

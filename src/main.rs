@@ -1001,6 +1001,7 @@ async fn run() -> Result<(), String> {
             std::env::set_current_dir(&dir).map_err(|e| format!("--dir {}: {e}", dir.display()))?;
             let dir = std::env::current_dir().map_err(dbg)?;
             log::init(&dir);
+            let minimized = flag("--minimized") || flag("--silent");
             #[cfg(windows)]
             if !flag("--console") {
                 tray::hide_console();
@@ -1068,12 +1069,12 @@ async fn run() -> Result<(), String> {
             };
             #[cfg(windows)]
             let done: Result<(), String> =
-                tokio::task::block_in_place(|| tray::run(bind, &dir, start_web));
+                tokio::task::block_in_place(|| tray::run(bind, &dir, minimized, start_web));
             // Il ciclo degli eventi passa al thread principale; questo thread tiene vivo il
             // runtime di tokio, su cui girano la pagina web e il resto.
             #[cfg(target_os = "macos")]
             let done: Result<(), String> = {
-                let job: MainJob = Box::new(move || tray::run(bind, &dir, start_web));
+                let job: MainJob = Box::new(move || tray::run(bind, &dir, minimized, start_web));
                 MAIN_JOB
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
