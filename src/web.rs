@@ -1499,11 +1499,21 @@ async fn update_anisette(
     )
 }
 
-async fn test_anisette(State(app): State<Arc<App>>) -> (StatusCode, Json<Value>) {
+#[derive(Deserialize, Default)]
+struct TestAnisetteReq {
+    #[serde(default)]
+    url: Option<String>,
+}
+
+async fn test_anisette(
+    State(app): State<Arc<App>>,
+    body: axum::body::Bytes,
+) -> (StatusCode, Json<Value>) {
+    let req: TestAnisetteReq = serde_json::from_slice(&body).unwrap_or_default();
     let Some(_guard) = try_busy(&app) else {
         return json_err(StatusCode::CONFLICT, BUSY_MSG);
     };
-    match apple::anisette_for_altstore(&app.dir).await {
+    match apple::test_anisette_url(&app.dir, req.url.as_deref()).await {
         Ok(_) => json_ok(),
         Err(error) => json_err(
             StatusCode::BAD_GATEWAY,

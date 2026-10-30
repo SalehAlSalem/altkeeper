@@ -94,7 +94,7 @@ impl StoreServicesCoreADIProxy<'_> {
             let native_library_path = library_path.join("lib").join(ARCH);
 
             let path = native_library_path.join("libstoreservicescore.so");
-            let path = path.to_str().ok_or(AnisetteError::Misc)?;
+            let path = path.to_str().ok_or(AnisetteError::Misc)?.trim_start_matches(r"\\?\");
             let store_services_core = AndroidLibrary::load(path)?;
 
             let adi_load_library_with_path: sysv64_type!(fn(path: *const u8) -> i32) =
@@ -107,7 +107,8 @@ impl StoreServicesCoreADIProxy<'_> {
             let path = CString::new(
                 native_library_path
                     .to_str()
-                    .ok_or(AnisetteError::Misc)?,
+                    .ok_or(AnisetteError::Misc)?
+                    .trim_start_matches(r"\\?\"),
             )
             .unwrap();
             let result = (adi_load_library_with_path)(path.as_ptr() as *const u8);
@@ -167,7 +168,10 @@ impl StoreServicesCoreADIProxy<'_> {
             };
 
             proxy.set_provisioning_path(
-                provisioning_path.to_str().ok_or(AnisetteError::Misc)?,
+                provisioning_path
+                    .to_str()
+                    .ok_or(AnisetteError::Misc)?
+                    .trim_start_matches(r"\\?\"),
             )?;
 
             Ok(proxy)

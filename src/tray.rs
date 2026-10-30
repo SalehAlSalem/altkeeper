@@ -623,6 +623,12 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
     if let Err(error) = &anisette_choice {
         crate::log::err(&format!("[tray] cannot read anisette server: {error}"));
     }
+    let ani_local = CheckMenuItem::new(
+        "AltKeeper local server (127.0.0.1:8788)",
+        !anisette_locked,
+        anisette_url == crate::apple::LOCAL_ANISETTE_URL,
+        None,
+    );
     let ani_default = CheckMenuItem::new(
         "ani3.stikstore.app (default)",
         !anisette_locked,
@@ -637,7 +643,7 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
     );
     let ani_other = MenuItem::new("Other…", !anisette_locked, None);
     let anisette_menu = Submenu::new("Anisette server", true);
-    let _ = anisette_menu.append_items(&[&ani_default, &ani_isideload, &ani_other]);
+    let _ = anisette_menu.append_items(&[&ani_local, &ani_default, &ani_isideload, &ani_other]);
     let check = MenuItem::new("Check for updates", true, None);
     let update_now = MenuItem::new("Up to date", false, None);
     let quit = MenuItem::new("Quit", true, None);
@@ -721,15 +727,18 @@ pub fn run(bind: SocketAddr, dir: &Path, start: impl FnOnce(EventLoopProxy<UserE
                             let _ = p.send_event(UserEvent::PairingDone(result));
                         });
                     }
-                } else if e.id == ani_default.id() || e.id == ani_isideload.id() {
+                } else if e.id == ani_local.id() || e.id == ani_default.id() || e.id == ani_isideload.id() {
                     let selected = if e.id == ani_default.id() {
                         None
+                    } else if e.id == ani_local.id() {
+                        Some(crate::apple::LOCAL_ANISETTE_URL)
                     } else {
                         Some(crate::apple::ISIDELOAD_ANISETTE_URL)
                     };
                     let selected_url = selected.unwrap_or(crate::apple::DEFAULT_ANISETTE_URL);
                     match crate::apple::save_anisette_choice(&dir, selected) {
                         Ok(_) => {
+                            let _ = ani_local.set_checked(selected_url == crate::apple::LOCAL_ANISETTE_URL);
                             let _ = ani_default.set_checked(selected_url == crate::apple::DEFAULT_ANISETTE_URL);
                             let _ = ani_isideload.set_checked(selected_url == crate::apple::ISIDELOAD_ANISETTE_URL);
                             if let Ok(handle) = tokio::runtime::Handle::try_current() {

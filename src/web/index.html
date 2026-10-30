@@ -2194,7 +2194,9 @@ $("anisette-test").onclick = async () => {
   anisetteTestRunning = true;
   $("anisette-test").disabled = true;
   try {
-    await api("/api/anisette/test", {});
+    const selected = $("anisette-server").value;
+    const url = selected === "custom" ? $("anisette-custom").value.trim() : selected;
+    await api("/api/anisette/test", url ? {url} : {});
     banner("anisette-test-result", t("Anisette server test succeeded."), "good");
   } catch (error) {
     banner("anisette-test-result", error.message, "bad");

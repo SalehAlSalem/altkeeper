@@ -921,6 +921,8 @@ async fn run() -> Result<(), String> {
                 )
                 .map(|_| ());
             }
+            #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+            tokio::spawn(anisette_server::serve_default(dir.clone()));
             web::serve(bind, pin, phone, dir).await
         }
         #[cfg(any(windows, target_os = "macos"))]
@@ -1004,7 +1006,9 @@ async fn run() -> Result<(), String> {
             update::cleanup(&exe);
             let rt = tokio::runtime::Handle::current();
             let web_dir = dir.clone();
+            let ani_dir = dir.clone();
             let start_web = move |proxy: tao::event_loop::EventLoopProxy<tray::UserEvent>| {
+                rt.spawn(anisette_server::serve_default(ani_dir));
                 rt.spawn(async move {
                     if let Err(e) = web::serve(bind, None, phone, web_dir).await {
                         let _ = proxy.send_event(tray::UserEvent::ServerFailed(e));

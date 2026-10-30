@@ -211,15 +211,17 @@ pub unsafe fn strncpy(
 }
 
 #[sysv64]
-pub unsafe fn chmod(path: *const libc::c_char, mode: libc::c_int) -> libc::c_int {
+pub unsafe fn chmod(path: *const libc::c_char, _mode: libc::c_int) -> libc::c_int {
     debug!("chmod: Windows translate-call");
-    libc::chmod(path, mode)
+    let path = CStr::from_ptr(path).to_windows();
+    libc::chmod(path.as_ptr(), 0o600)
 }
 
 #[sysv64]
 pub unsafe fn mkdir(path: *const libc::c_char) -> libc::c_int {
     debug!("mkdir: Windows translate-call");
-    libc::mkdir(path)
+    let path = CStr::from_ptr(path).to_windows();
+    libc::mkdir(path.as_ptr())
 }
 
 #[sysv64]
@@ -233,6 +235,9 @@ pub unsafe fn open(path: *const libc::c_char, oflag: libc::c_int) -> libc::c_int
     if oflag & 0o100 != 0 {
         win_flag |= O_CREAT;
     }
+    if oflag & 0o1000 != 0 {
+        win_flag |= libc::O_TRUNC;
+    }
 
     if oflag & 0o1 == 1 {
         win_flag |= O_WRONLY;
@@ -242,7 +247,7 @@ pub unsafe fn open(path: *const libc::c_char, oflag: libc::c_int) -> libc::c_int
         win_flag |= O_RDONLY;
     }
 
-    let val = libc::open(path.as_ptr(), win_flag);
+    let val = libc::open(path.as_ptr(), win_flag, 0o600);
 
     val
 }
