@@ -650,6 +650,169 @@
   }
   .why-box strong { color: var(--text); }
 
+
+  /* Concept Buttons & Explainer System */
+  .concept-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 0;
+    margin-left: 8px;
+    vertical-align: middle;
+    background: var(--accent-soft);
+    color: #0c1f22;
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    cursor: pointer;
+    transition: all 0.16s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .concept-btn:hover {
+    background: var(--accent);
+    color: #fcfbf5;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+
+  /* Category Navigation Bar */
+  .category-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 7px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .category-nav::-webkit-scrollbar { display: none; }
+  .category-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 11px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.16s ease;
+    user-select: none;
+  }
+  .category-tab:hover {
+    color: var(--text);
+    background: var(--card-alt);
+  }
+  .category-tab.active {
+    color: var(--accent-text);
+    background: var(--accent-gradient);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  .tab-badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+    color: currentColor;
+  }
+  .category-tab:not(.active) .tab-badge {
+    background: var(--track);
+    color: var(--text);
+  }
+
+  /* Category Filtering */
+  .dashboard-grid[data-category="apps"] .card:not([data-category="apps"]),
+  .dashboard-grid[data-category="tools"] .card:not([data-category="tools"]),
+  .dashboard-grid[data-category="settings"] .card:not([data-category="settings"]),
+  .dashboard-grid[data-category="logs"] .card:not([data-category="logs"]) {
+    display: none !important;
+  }
+
+  /* Desktop Multi-column Layout per Category */
+  @media (min-width: 900px) {
+    .dashboard-grid[data-category="apps"] {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-grid[data-category="apps"] .col-main {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .dashboard-grid[data-category="apps"] .col-main #profiles-card {
+      grid-column: 1 / -1;
+    }
+    .dashboard-grid[data-category="tools"] {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-grid[data-category="settings"] {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-grid[data-category="settings"] .col-side {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .dashboard-grid[data-category="logs"] {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Concept Modal Content */
+  .concept-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .concept-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(252, 251, 245, 0.18);
+    color: #fcfbf5;
+  }
+  .concept-content ul {
+    margin: 8px 0 14px;
+    padding-left: 20px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .concept-content li {
+    margin-bottom: 7px;
+  }
+  .concept-content li strong {
+    color: var(--text);
+  }
+  .concept-takeaway {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--card-alt);
+    border-left: 3px solid var(--accent);
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.45;
+  }
+
 </style>
 </head>
 <body>
@@ -802,6 +965,29 @@
   </div>
 
   
+  <div id="concept-modal" class="modal-overlay" hidden>
+    <div class="modal-box wide">
+      <div class="modal-hero">
+        <div>
+          <div class="concept-meta">
+            <span class="concept-tag" id="concept-tag">EXPLAINER</span>
+            <span class="live-pill" style="padding: 2px 8px; font-size: .68rem;">Instant Guide</span>
+          </div>
+          <h3 id="concept-title" style="margin: 6px 0 0;">Concept Explainer</h3>
+        </div>
+        <button type="button" id="concept-close" class="modal-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="concept-lead" style="font-size: .92rem; font-weight: 600; color: var(--text); line-height: 1.5; margin: 0 0 12px;"></p>
+        <div id="concept-body" class="concept-content"></div>
+        <div class="concept-takeaway" id="concept-takeaway"></div>
+        <div class="row" style="margin-top: 18px; justify-content: flex-end;">
+          <button type="button" id="concept-ok-btn" class="primary" style="min-width: 100px;">Got it</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="pairing">
   <div class="banner bad" id="no-pairing" hidden>
     <span data-i18n="iPhone pairing is missing">iPhone pairing is missing</span> (<code>rp-pairing.plist</code>). <span data-i18n="Pair it over USB.">Pair it over USB.</span>
@@ -813,7 +999,7 @@
     <div class="story-head">
       <div class="story-title">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        <span>How Local Wi-Fi Auto-Renewal Works (Set &amp; Forget)</span>
+        <span>How Local Wi-Fi Auto-Renewal Works (Set &amp; Forget)</span> <button type="button" class="concept-btn" data-concept="local-server" title="Explain how local auto-renewal works">!</button>
       </div>
       <span class="story-badge">Zero Cables Required After Setup</span>
     </div>
@@ -837,10 +1023,34 @@
     </div>
   </div>
 
-  <div class="dashboard-grid">
+  <nav class="category-nav" role="tablist" aria-label="Dashboard Categories">
+    <button type="button" class="category-tab active" data-tab="apps" role="tab" aria-selected="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      <span>Apps &amp; Profiles</span>
+      <span class="tab-badge" id="tab-apps-count">0</span>
+    </button>
+    <button type="button" class="category-tab" data-tab="tools" role="tab" aria-selected="false">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <span>Sideload &amp; JIT</span>
+    </button>
+    <button type="button" class="category-tab" data-tab="settings" role="tab" aria-selected="false">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings &amp; Alerts</span>
+    </button>
+    <button type="button" class="category-tab" data-tab="logs" role="tab" aria-selected="false">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>Activity &amp; Logs</span>
+    </button>
+    <button type="button" class="category-tab tab-all" data-tab="all" role="tab" aria-selected="false">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>All Cards</span>
+    </button>
+  </nav>
+
+  <div class="dashboard-grid" data-category="apps">
     <div class="col-main">
-      <section class="card" aria-live="polite">
-    <h2 data-i18n="iPhone">iPhone</h2>
+      <section class="card" aria-live="polite" data-category="apps">
+    <h2 data-i18n="iPhone">iPhone <button type="button" class="concept-btn" data-concept="pairing" title="Explain USB pairing and Wi-Fi sync">!</button></h2>
     <div class="row">
       <span class="pill" id="phone-pill" data-i18n="Checking…">Checking…</span>
       <span class="muted grow" id="phone-addr"></span>
@@ -866,8 +1076,8 @@
       <div class="banner bad" id="phone-addresses-error" hidden></div>
     </details>
   </section>
-      <section class="card">
-    <h2 data-i18n="Just-in-time (JIT)">Just-in-time (JIT)</h2>
+      <section class="card" data-category="tools">
+    <h2 data-i18n="Just-in-time (JIT)">Just-in-time (JIT) <button type="button" class="concept-btn" data-concept="jit" title="Explain Just-in-time compilation">!</button></h2>
     <p class="muted" data-i18n="Enable JIT for an app that is already running on the iPhone. A compatible Developer Disk Image must be mounted and Developer Mode enabled.">
       Enable JIT for an app that is already running on the iPhone. A compatible Developer Disk Image must be mounted and Developer Mode enabled.
     </p>
@@ -882,9 +1092,9 @@
     <div class="banner bad" id="jit-error" hidden></div>
     <div id="jit-job-slot"></div>
   </section>
-      <section class="card">
+      <section class="card" data-category="apps">
     <div class="apps-toolbar">
-      <h2 data-i18n="Your apps" style="margin:0">Your apps</h2>
+      <h2 data-i18n="Your apps" style="margin:0">Your apps <button type="button" class="concept-btn" data-concept="quotas" title="Explain Apple ID quotas and 7-day limits">!</button></h2>
       <div class="apps-toolbar-right">
         <div class="quotas-row" id="quotas-row" hidden>
           <span class="quota-badge" id="quota-apps"></span>
@@ -914,9 +1124,9 @@
       </div>
     </div>
   </section>
-      <section class="card" id="profiles-card">
+      <section class="card" id="profiles-card" data-category="apps">
     <div class="row" style="justify-content:space-between; align-items:center;">
-      <h2 data-i18n="Provisioning profiles on iPhone" style="margin:0">Provisioning profiles on iPhone</h2>
+      <h2 data-i18n="Provisioning profiles on iPhone" style="margin:0">Provisioning profiles on iPhone <button type="button" class="concept-btn" data-concept="profiles" title="Explain provisioning profiles and safe backups">!</button></h2>
       <button id="btn-bulk-delete" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" disabled>
         <span data-i18n="Delete Selected">Delete Selected</span> (<span id="bulk-delete-count">0</span>)
       </button>
@@ -931,7 +1141,7 @@
     <p class="muted" id="profiles-empty" hidden></p>
     <ul class="plain" id="profiles"></ul>
   </section>
-      <section class="card">
+      <section class="card" data-category="apps">
     <div class="row" style="justify-content:space-between; align-items:center;">
       <h2 data-i18n="Saved profile backups" style="margin:0">Saved profile backups</h2>
       <button id="btn-clear-backups" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" hidden data-i18n="Delete all backups">Delete all backups</button>
@@ -942,8 +1152,8 @@
   </section>
     </div>
     <div class="col-side">
-      <section class="card">
-    <h2 data-i18n="Install an app from this PC">Install an app from this PC</h2>
+      <section class="card" data-category="tools">
+    <h2 data-i18n="Install an app from this PC">Install an app from this PC <button type="button" class="concept-btn" data-concept="extensions" title="Explain app extensions and custom bundle IDs">!</button></h2>
     <p class="muted" data-i18n="Choose an IPA. AltKeeper signs it with the configured Apple ID and installs it over Wi-Fi. The Apple ID password must be saved on the server.">Choose an IPA. AltKeeper signs it with the configured Apple ID and installs it over Wi-Fi. The Apple ID password must be saved on the server.</p>
     <form id="install-form">
       <label for="ipa-file" data-i18n="IPA file">IPA file</label>
@@ -982,8 +1192,8 @@
     <div class="banner bad" id="install-error" hidden></div>
     <div id="install-job-slot"></div>
   </section>
-      <section class="card">
-    <h2>Apple ID</h2>
+      <section class="card" data-category="settings">
+    <h2>Apple ID <button type="button" class="concept-btn" data-concept="appleid" title="Explain Apple ID signing and security">!</button></h2>
     <div id="account-info" hidden>
       <div class="row">
         <span class="grow"><strong id="acc-id"></strong><br><span class="muted" id="acc-pw"></span></span>
@@ -1014,7 +1224,7 @@
     </form>
     <div class="banner" id="login-msg" hidden></div>
   </section>
-      <section class="card">
+      <section class="card" data-category="settings">
     <h2 data-i18n="Automatic renewal">Automatic renewal</h2>
     <p class="muted" data-i18n="Runs once daily while this server is online. Renews expiring installed apps. If installed-app lookup fails, it falls back to all saved-team profiles. Default is OFF.">Runs once daily while this server is online. Renews expiring installed apps. If installed-app lookup fails, it falls back to all saved-team profiles. Default is OFF.</p>
     <div class="row">
@@ -1041,9 +1251,13 @@
       <button id="auto-disable" type="button" hidden data-i18n="Turn off">Turn off</button>
     </div>
     <div class="banner bad" id="auto-error" hidden></div>
-    <div class="divider"></div>
-    <div id="anisette">
+  </section>
+  <section class="card" data-category="settings">
     <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <h2 style="margin:0">Failure notifications</h2>
+    </div>
+    <p class="muted">Receive instant alerts on Discord or Telegram if automatic background renewal fails.</p>
+    <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px; margin-top:8px;">
       <label for="discord-webhook" style="margin:0" data-i18n="Discord failure notifications">Discord failure notifications</label>
       <button type="button" id="btn-discord-guide" class="help-btn" title="How to create a Discord Webhook">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1089,8 +1303,10 @@
     </div>
     <div class="banner bad" id="telegram-error" hidden></div>
     <div class="banner" id="telegram-test-result" role="status" aria-live="polite" hidden></div>
-    <div class="divider"></div>
-    <h2 data-i18n="Anisette server">Anisette server</h2>
+  </section>
+  <section class="card" data-category="settings">
+    <div id="anisette">
+    <h2 data-i18n="Anisette server">Anisette server <button type="button" class="concept-btn" data-concept="anisette" title="Explain Anisette authentication server">!</button></h2>
     <div class="why-box"><strong>What is Anisette?</strong> Apple requires security tokens generated by a real Mac or iCloud setup before allowing sideload sign-ins. Keep the default server unless it goes offline.</div>
     <p class="muted" data-i18n="Choose the server used for Apple authentication and AltStore.">Choose the server used for Apple authentication and AltStore.</p>
     <div class="row">
@@ -1113,13 +1329,13 @@
     <div class="banner" id="anisette-test-result" role="status" aria-live="polite" hidden></div>
     </div>
   </section>
-      <section class="card hist">
+      <section class="card hist" data-category="logs">
     <h2 data-i18n="Recent renewals">Recent renewals</h2>
     <p class="muted" id="hist-empty" data-i18n="Nothing yet. Automatic renewal runs every evening when configured on the server.">Nothing yet. Automatic renewal runs every evening when configured on the server.</p>
     <ul class="plain" id="hist"></ul>
   </section>
     </div>
-    <section class="card" id="logs">
+    <section class="card" id="logs" data-category="logs">
     <h2 data-i18n="Logs">Logs</h2>
     <div class="row">
       <span class="muted grow" data-i18n="Live server log, newest at the bottom.">Live server log, newest at the bottom.</span>
@@ -1742,7 +1958,114 @@ async function refresh() {
 
 async function act(fn, errId) {
   try { await fn(); } catch (e) { banner(errId || "phone-error", e.message, "bad"); }
-  refresh();
+  
+// Concept Explainer System
+const CONCEPTS = {
+  "local-server": {
+    tag: "BACKGROUND SERVICE",
+    title: "How Local Wi-Fi Auto-Renewal Works",
+    lead: "AltKeeper runs silently on this PC to renew your sideloaded apps over home Wi-Fi with zero cables required after initial setup.",
+    body: "<ul><li><strong>Local Discovery:</strong> Your iPhone broadcasts itself over Bonjour/mDNS on LAN port 49152.</li><li><strong>Silent Resigning:</strong> When apps near the 7-day cutoff (e.g. 3 days remaining), AltKeeper requests fresh certificates from Apple using your saved Apple ID.</li><li><strong>Wireless Push:</strong> The new provisioning profile is installed directly onto your iPhone over Wi-Fi without needing to replug a USB cable.</li></ul>",
+    takeaway: "As long as this PC is awake on the same home Wi-Fi as your iPhone, your apps will stay active indefinitely."
+  },
+  "quotas": {
+    tag: "APPLE DEVELOPER RULES",
+    title: "Apple ID Quotas & 7-Day Expirations",
+    lead: "Free Apple Developer accounts have hard limits enforced by Apple on non-paid individual IDs.",
+    body: "<ul><li><strong>3 Active Apps:</strong> iOS permits a maximum of 3 sideloaded apps active on your device simultaneously.</li><li><strong>10 App IDs per 7 Days:</strong> Every unique app bundle identifier (plus every app extension) consumes 1 of your 10 weekly App ID registrations.</li><li><strong>7-Day Expiry:</strong> Certificates expire after 7 days (168 hours). AltKeeper renews them automatically before they stop launching.</li></ul>",
+    takeaway: "AltKeeper tracks your used quotas and renews expiring apps before you hit Apple's deadlines."
+  },
+  "profiles": {
+    tag: "SECURITY CERTIFICATES",
+    title: "Provisioning Profiles vs Installed Apps",
+    lead: "A provisioning profile is an Apple cryptographic permit that authorizes your iPhone to run a sideloaded app.",
+    body: "<ul><li><strong>Profile Clutter:</strong> Every time an app is renewed or re-signed, iOS receives a new profile UUID. Old expired profiles remain stored on the phone.</li><li><strong>Safe Cleanup:</strong> Deleting expired profiles frees up internal storage. However, deleting an <em>active</em> profile will prevent that app from opening!</li><li><strong>Verified Backups:</strong> AltKeeper automatically saves a verified backup on this PC before deleting any profile from iOS, so you can restore it anytime with one click.</li></ul>",
+    takeaway: "Click 'Select expired' to safely select and remove leftover profiles without affecting active apps."
+  },
+  "jit": {
+    tag: "PERFORMANCE DEBUGGER",
+    title: "Just-In-Time (JIT) Compilation",
+    lead: "JIT allows apps to generate and execute machine code dynamically at native processor speeds.",
+    body: "<ul><li><strong>Why iOS Restricts It:</strong> Apple blocks arbitrary executable memory allocation on consumer iOS devices to prevent exploits.</li><li><strong>Emulators Need JIT:</strong> Emulators like Dolphin (GameCube/Wii), UTM (Virtual Machines), PojavLauncher (Minecraft Java), and Flycast run up to 10x faster with JIT enabled.</li><li><strong>How AltKeeper Enables It:</strong> By mounting a Developer Disk Image and attaching a debug session over Wi-Fi, AltKeeper grants JIT permissions to the running app.</li></ul>",
+    takeaway: "Launch your emulator on your iPhone, select it in the dropdown, and click 'Enable JIT'."
+  },
+  "anisette": {
+    tag: "AUTHENTICATION",
+    title: "Anisette Authentication Server",
+    lead: "Anisette provides the device-specific hardware headers Apple requires whenever signing into an Apple ID.",
+    body: "<ul><li><strong>What is Anisette?</strong> Apple's auth servers check for cryptographic tokens (<code>X-Apple-I-MD</code> and <code>X-Apple-I-MD-M</code>) normally generated by macOS or official iCloud DLLs.</li><li><strong>Why It Matters:</strong> Without valid Anisette headers, Apple's login API returns error <code>-20101</code> or blocks authentication.</li><li><strong>Default Server:</strong> AltKeeper connects to <code>ani3.stikstore.app</code> by default, maintained 24/7 for reliability and 2FA support.</li></ul>",
+    takeaway: "Keep the default server unless it experiences downtime or you run a private local server."
+  },
+  "pairing": {
+    tag: "DEVICE PAIRING",
+    title: "USB Pairing & Trust Record",
+    lead: "To protect your iPhone against unauthorized wireless access, iOS requires a one-time cryptographic handshake over USB.",
+    body: "<ul><li><strong>Pair Once:</strong> Plugging your iPhone into this PC once and clicking 'Pair iPhone over USB' saves a trusted pairing record (<code>rp-pairing.plist</code>).</li><li><strong>Untethered Freedom:</strong> Once paired, you can unplug the USB cable. All future renewals, installs, and status checks occur over your home Wi-Fi.</li><li><strong>Auto-Pair:</strong> Enable 'Pair automatically' to pair new devices automatically when plugged in via USB.</li></ul>",
+    takeaway: "USB is only required once for the initial trust handshake; everything else happens over Wi-Fi."
+  },
+  "extensions": {
+    tag: "IPA INSTALLATION",
+    title: "App Extensions & Bundle Identifiers",
+    lead: "Many iOS apps bundle auxiliary extensions that provide widgets, notification actions, or Apple Watch support.",
+    body: "<ul><li><strong>Quota Impact:</strong> Apple counts each app extension as an independent App ID against your 10-per-week free developer limit.</li><li><strong>Customization:</strong> AltKeeper lets you inspect extensions (e.g. <code>WidgetKitExtension</code>) and uncheck unnecessary ones before signing.</li><li><strong>Custom Bundle ID:</strong> Entering a custom Bundle ID lets you install multiple duplicate copies of the same app side-by-side.</li></ul>",
+    takeaway: "If you are running low on App ID quotas, uncheck non-essential extensions before installing."
+  },
+  "appleid": {
+    tag: "SECURITY & PRIVACY",
+    title: "Apple ID & Signing Security",
+    lead: "AltKeeper communicates directly with Apple Developer servers to generate your 7-day app certificates.",
+    body: "<ul><li><strong>Direct & Private:</strong> Credentials are sent strictly between this PC and official Apple authentication servers (<code>gsa.apple.com</code>), never to third-party cloud servers.</li><li><strong>Password Storage:</strong> If 'Save password' is checked, your credentials are saved locally in a private server file so scheduled renewals run silently in the background.</li><li><strong>Burner Accounts:</strong> You can use your main Apple ID or a dedicated secondary free Apple ID specifically for sideloading.</li></ul>",
+    takeaway: "Your Apple ID credentials stay private on your PC and are used only for generating signing certificates."
+  }
+};
+
+document.querySelectorAll(".concept-btn").forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const concept = CONCEPTS[btn.dataset.concept];
+    if (!concept) return;
+    $("concept-tag").textContent = concept.tag;
+    $("concept-title").textContent = concept.title;
+    $("concept-lead").textContent = concept.lead;
+    $("concept-body").innerHTML = concept.body;
+    $("concept-takeaway").innerHTML = "<strong>Key takeaway:</strong> " + concept.takeaway;
+    $("concept-modal").hidden = false;
+  };
+});
+$("concept-close").onclick = () => { $("concept-modal").hidden = true; };
+$("concept-ok-btn").onclick = () => { $("concept-modal").hidden = true; };
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    $("concept-modal").hidden = true;
+    $("qr-modal").hidden = true;
+    $("discord-guide-modal").hidden = true;
+    $("tg-guide-modal").hidden = true;
+  }
+});
+
+// Category Navigation System
+function setCategory(cat) {
+  document.querySelectorAll(".category-tab").forEach(tab => {
+    const active = tab.dataset.tab === cat;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  const grid = document.querySelector(".dashboard-grid");
+  if (grid) grid.dataset.category = cat;
+  try { localStorage.setItem("altkeeper_category", cat); } catch (e) {}
+}
+
+document.querySelectorAll(".category-tab").forEach(tab => {
+  tab.onclick = () => setCategory(tab.dataset.tab);
+});
+
+const initialTab = (location.hash === "#logs") ? "logs" :
+                   (location.hash === "#anisette") ? "settings" :
+                   (location.hash === "#pairing") ? "apps" :
+                   (function() { try { return localStorage.getItem("altkeeper_category") || "apps"; } catch(e) { return "apps"; } })();
+setCategory(initialTab);
+
+refresh();
 }
 
 $("auto-enable").onclick = () => {
