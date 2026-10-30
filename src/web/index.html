@@ -653,30 +653,38 @@
 
   /* Concept Buttons & Explainer System */
   .concept-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 0.78rem;
-    font-weight: 800;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    padding: 0;
-    margin-left: 8px;
-    vertical-align: middle;
-    background: var(--accent-soft);
-    color: #0c1f22;
-    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-    cursor: pointer;
-    transition: all 0.16s ease;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    max-width: 20px !important;
+    max-height: 20px !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 50% !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    padding: 0 !important;
+    margin-left: 8px !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+    background: rgba(43, 179, 173, 0.2) !important;
+    color: var(--accent) !important;
+    border: 1.5px solid var(--accent) !important;
+    cursor: pointer !important;
+    transition: all 0.16s ease !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12) !important;
   }
   .concept-btn:hover {
-    background: var(--accent);
-    color: #fcfbf5;
-    transform: scale(1.15);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 26%, transparent);
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    transform: scale(1.18) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent) !important;
   }
 
   /* Category Navigation Bar */
@@ -734,43 +742,92 @@
     color: var(--text);
   }
 
-  /* Category Filtering */
-  .dashboard-grid[data-category="apps"] .card:not([data-category="apps"]),
-  .dashboard-grid[data-category="tools"] .card:not([data-category="tools"]),
-  .dashboard-grid[data-category="settings"] .card:not([data-category="settings"]),
-  .dashboard-grid[data-category="logs"] .card:not([data-category="logs"]) {
+  /* Category Navigation Jump Bar */
+  .category-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 7px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .category-nav::-webkit-scrollbar { display: none; }
+  .category-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 11px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.16s ease;
+    user-select: none;
+  }
+  .category-tab:hover {
+    color: var(--text);
+    background: var(--card-alt);
+  }
+  .category-tab.active {
+    color: var(--accent-text);
+    background: var(--accent-gradient);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+
+  /* Optional filtering if user explicitly wants to filter, but by default 'all' shows all */
+  .dashboard-grid[data-filter="apps"] .card:not([data-filter="all"]),
+  .dashboard-grid[data-filter="tools"] .card:not([data-category="tools"]),
+  .dashboard-grid[data-filter="settings"] .card:not([data-category="settings"]),
+  .dashboard-grid[data-filter="logs"] .card:not([data-category="logs"]) {
     display: none !important;
   }
 
-  /* Desktop Multi-column Layout per Category */
+  /* Balanced 2-Column Bento Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    width: 100%;
+  }
   @media (min-width: 900px) {
-    .dashboard-grid[data-category="apps"] {
-      grid-template-columns: 1fr 1fr;
+    .dashboard-grid {
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      align-items: start;
+      gap: 22px;
     }
-    .dashboard-grid[data-category="apps"] .col-main {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    .dashboard-grid[data-category="apps"] .col-main #profiles-card {
-      grid-column: 1 / -1;
-    }
-    .dashboard-grid[data-category="tools"] {
-      grid-template-columns: 1fr 1fr;
-    }
-    .dashboard-grid[data-category="settings"] {
-      grid-template-columns: 1fr 1fr;
-    }
-    .dashboard-grid[data-category="settings"] .col-side {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    .dashboard-grid[data-category="logs"] {
-      grid-template-columns: 1fr;
-    }
+  }
+  .col-main, .col-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .card {
+    margin: 0 !important;
+  }
+  .category-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 2px 4px;
+    margin-bottom: -10px;
   }
 
   /* Concept Modal Content */
@@ -1024,7 +1081,7 @@
   </div>
 
   <nav class="category-nav" role="tablist" aria-label="Dashboard Categories">
-    <button type="button" class="category-tab active" data-tab="apps" role="tab" aria-selected="true">
+    <button type="button" class="category-tab" data-tab="apps" role="tab" aria-selected="false">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
       <span>Apps &amp; Profiles</span>
       <span class="tab-badge" id="tab-apps-count">0</span>
@@ -1041,15 +1098,15 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       <span>Activity &amp; Logs</span>
     </button>
-    <button type="button" class="category-tab tab-all" data-tab="all" role="tab" aria-selected="false">
+    <button type="button" class="category-tab tab-all active" data-tab="all" role="tab" aria-selected="true">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       <span>All Cards</span>
     </button>
   </nav>
 
-  <div class="dashboard-grid" data-category="apps">
+  <div class="dashboard-grid" data-filter="all">
     <div class="col-main">
-      <section class="card" aria-live="polite" data-category="apps">
+      <section class="card" aria-live="polite" data-filter="all">
     <h2 data-i18n="iPhone">iPhone <button type="button" class="concept-btn" data-concept="pairing" title="Explain USB pairing and Wi-Fi sync">!</button></h2>
     <div class="row">
       <span class="pill" id="phone-pill" data-i18n="Checking…">Checking…</span>
@@ -1092,7 +1149,7 @@
     <div class="banner bad" id="jit-error" hidden></div>
     <div id="jit-job-slot"></div>
   </section>
-      <section class="card" data-category="apps">
+      <section class="card" data-filter="all">
     <div class="apps-toolbar">
       <h2 data-i18n="Your apps" style="margin:0">Your apps <button type="button" class="concept-btn" data-concept="quotas" title="Explain Apple ID quotas and 7-day limits">!</button></h2>
       <div class="apps-toolbar-right">
@@ -1124,7 +1181,7 @@
       </div>
     </div>
   </section>
-      <section class="card" id="profiles-card" data-category="apps">
+      <section class="card" id="profiles-card" data-filter="all">
     <div class="row" style="justify-content:space-between; align-items:center;">
       <h2 data-i18n="Provisioning profiles on iPhone" style="margin:0">Provisioning profiles on iPhone <button type="button" class="concept-btn" data-concept="profiles" title="Explain provisioning profiles and safe backups">!</button></h2>
       <button id="btn-bulk-delete" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" disabled>
@@ -1141,7 +1198,7 @@
     <p class="muted" id="profiles-empty" hidden></p>
     <ul class="plain" id="profiles"></ul>
   </section>
-      <section class="card" data-category="apps">
+      <section class="card" data-filter="all">
     <div class="row" style="justify-content:space-between; align-items:center;">
       <h2 data-i18n="Saved profile backups" style="margin:0">Saved profile backups</h2>
       <button id="btn-clear-backups" type="button" class="mini" style="color:var(--urgent); border-color:var(--urgent); width:auto; padding:6px 12px;" hidden data-i18n="Delete all backups">Delete all backups</button>
@@ -2043,7 +2100,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-// Category Navigation System
+// Category Navigation & Filtering System
 function setCategory(cat) {
   document.querySelectorAll(".category-tab").forEach(tab => {
     const active = tab.dataset.tab === cat;
@@ -2051,8 +2108,10 @@ function setCategory(cat) {
     tab.setAttribute("aria-selected", active ? "true" : "false");
   });
   const grid = document.querySelector(".dashboard-grid");
-  if (grid) grid.dataset.category = cat;
-  try { localStorage.setItem("altkeeper_category", cat); } catch (e) {}
+  if (grid) {
+    grid.dataset.filter = cat;
+  }
+  try { localStorage.setItem("altkeeper_filter", cat); } catch (e) {}
 }
 
 document.querySelectorAll(".category-tab").forEach(tab => {
@@ -2062,7 +2121,7 @@ document.querySelectorAll(".category-tab").forEach(tab => {
 const initialTab = (location.hash === "#logs") ? "logs" :
                    (location.hash === "#anisette") ? "settings" :
                    (location.hash === "#pairing") ? "apps" :
-                   (function() { try { return localStorage.getItem("altkeeper_category") || "apps"; } catch(e) { return "apps"; } })();
+                   (function() { try { return localStorage.getItem("altkeeper_filter") || "all"; } catch(e) { return "all"; } })();
 setCategory(initialTab);
 
 refresh();
