@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "altkeeper"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "axum",
  "base64 0.21.7",
@@ -112,7 +112,7 @@ dependencies = [
 [[package]]
 name = "android-loader"
 version = "0.2.0"
-source = "git+https://github.com/Dadoum/android-loader?branch=bigger_pages#dfa86501afca7caa23d5ce15322ac7260d857485"
+source = "git+https://github.com/BartolomeoRusso9/android-loader?rev=96ed02b2aee91d7854dcb4b75a17e4288f40ab94#96ed02b2aee91d7854dcb4b75a17e4288f40ab94"
 dependencies = [
  "anyhow",
  "lazy_static",
@@ -4074,9 +4074,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.45"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "once_cell",
  "ring",
@@ -4690,7 +4690,7 @@ dependencies = [
 [[package]]
 name = "sysv64"
 version = "0.1.0"
-source = "git+https://github.com/Dadoum/android-loader?branch=bigger_pages#dfa86501afca7caa23d5ce15322ac7260d857485"
+source = "git+https://github.com/BartolomeoRusso9/android-loader?rev=96ed02b2aee91d7854dcb4b75a17e4288f40ab94#96ed02b2aee91d7854dcb4b75a17e4288f40ab94"
 
 [[package]]
 name = "tao"
@@ -6060,9 +6060,9 @@ dependencies = [
 
 [[package]]
 name = "xmas-elf"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42c49817e78342f7f30a181573d82ff55b88a35f86ccaf07fc64b3008f56d1c6"
+checksum = "18245fcbb8b3de8dd198ce7944fdd4096986fd6cd306b0fcfa27df817bd545d6"
 dependencies = [
  "zero",
 ]

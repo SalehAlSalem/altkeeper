@@ -241,7 +241,7 @@ fn now() -> u64 {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct AutoRenewConfig {
+pub(crate) struct AutoRenewConfig {
     enabled: bool,
     /// HH:MM in UTC (no daylight saving), independent of container TZ.
     time: String,
@@ -255,6 +255,8 @@ struct AutoRenewConfig {
     retry_at: Option<u64>,
     #[serde(default)]
     last_error: Option<String>,
+    #[serde(default)]
+    pub(crate) auto_register_app_ids: bool,
 }
 fn default_min_days() -> u8 {
     3
@@ -270,6 +272,7 @@ impl Default for AutoRenewConfig {
             retry_count: 0,
             retry_at: None,
             last_error: None,
+            auto_register_app_ids: false,
         }
     }
 }
@@ -310,7 +313,7 @@ fn next_auto_run(config: &AutoRenewConfig, now_secs: u64) -> Option<u64> {
     Some(scheduled_day * DAY_SECS + target)
 }
 
-fn load_auto_renew(dir: &Path) -> AutoRenewConfig {
+pub(crate) fn load_auto_renew(dir: &Path) -> AutoRenewConfig {
     let raw = match std::fs::read_to_string(dir.join(AUTO_RENEW_CONFIG)) {
         Ok(raw) => raw,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return AutoRenewConfig::default(),
@@ -1135,6 +1138,7 @@ async fn state(State(app): State<Arc<App>>) -> Json<Value> {
         },
         "auto_renew": {
             "enabled": schedule.enabled,
+            "auto_register_app_ids": schedule.auto_register_app_ids,
             "time": schedule.time,
             "min_days": schedule.min_days,
             "retry_count": schedule.retry_count,
@@ -1528,6 +1532,8 @@ struct AutoRenewReq {
     time: String,
     #[serde(default = "default_min_days")]
     min_days: u8,
+    #[serde(default)]
+    auto_register_app_ids: Option<bool>,
 }
 
 async fn update_auto_renew(
@@ -1565,6 +1571,9 @@ async fn update_auto_renew(
         updated.last_attempt_day = Some(utc_day(now()));
     }
     updated.enabled = req.enabled;
+    if let Some(value) = req.auto_register_app_ids {
+        updated.auto_register_app_ids = value;
+    }
     updated.time = req.time;
     updated.min_days = req.min_days;
     if !req.enabled {
@@ -3105,6 +3114,18 @@ fn short_error(err: &str) -> String {
         if !clean.is_empty() {
             return format!("Apple ID sign-in failed: {clean}");
         }
+    // iOS reports its limit of three apps per iPhone with a free developer profile as a
+    // multi-line message: the `{( ... )}` block lists the apps using up the slots. Keep it,
+    // otherwise the log stops at `{(` and hides the very apps the user has to delete.
+    if err.contains("maximum number of installed apps using a free developer profile") {
+        let detail = err.split_whitespace().collect::<Vec<_>>().join(" ");
+        let detail: String = detail.chars().take(1000).collect();
+        return format!(
+            "{detail} | iOS allows at most 3 apps signed with a free developer profile on one \
+             iPhone (expired and offloaded apps count too). The limit is on the iPhone, not on \
+             the Apple ID, so another account does not help: delete one of the apps listed \
+             above, then try again."
+        );
     }
     let one_line = err
         .lines()
@@ -3466,6 +3487,19 @@ mod tests {
                 .count(),
             1200
         );
+    }
+
+    #[test]
+    fn free_profile_limit_error_keeps_the_list_of_apps() {
+        let raw = "IPA installation failed: Application verification failed: This device has \
+                   reached the maximum number of installed apps using a free developer profile: {(\n    \
+                   \"TEAM.com.example.one\",\n    \"TEAM.com.example.two\",\n    \
+                   \"TEAM.com.example.three\"\n)}";
+        let error = short_error(raw);
+        assert!(!error.contains('\n'));
+        assert!(error.contains("TEAM.com.example.one"));
+        assert!(error.contains("TEAM.com.example.three"));
+        assert!(error.contains("not on the Apple ID"));
     }
 
     #[test]
