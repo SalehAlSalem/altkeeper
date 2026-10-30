@@ -331,6 +331,7 @@ async fn cmd_renew(
     bundle_filter: Option<&str>,
     installed_only: bool,
     wait_control: Option<&renewal_wait::Control>,
+    tfa: Option<std::sync::Arc<apple::TfaChannel>>,
     say: &mut dyn FnMut(&str),
 ) -> Result<(), String> {
     let _auto_pair_pause = phone::pause_auto_pairing();
@@ -466,8 +467,13 @@ async fn cmd_renew(
     }
 
     say("Signing in to Apple...");
-    apple::set_interactive(false);
-    let mut sess = apple::open_session(Path::new("."), &acc.apple_id, &acc.password).await?;
+    let mut sess = if let Some(chan) = tfa {
+        say("Awaiting 2FA code if required by Apple (enter on Web UI or your device)...");
+        apple::open_session_web(dir, &acc.apple_id, &acc.password, chan).await?
+    } else {
+        apple::set_interactive(false);
+        apple::open_session(dir, &acc.apple_id, &acc.password).await?
+    };
     let team = apple::pick_team(&mut sess, Some(&team_id), false).await?;
     let ids = apple::app_ids(&mut sess, &team).await?;
 
@@ -843,6 +849,7 @@ async fn run() -> Result<(), String> {
                 min_days,
                 bundle.as_deref(),
                 installed_only,
+                None,
                 None,
                 &mut |s| println!("{s}"),
             )

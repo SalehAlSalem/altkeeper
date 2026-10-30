@@ -2553,6 +2553,7 @@ async fn run_renew(
         bundle.as_deref(),
         installed_only,
         Some(&app.renewal_wait),
+        Some(app.tfa.clone()),
         &mut say,
     )
     .await;
